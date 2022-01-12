@@ -1,3 +1,5 @@
+#include <cstrike>
+#include <sdktools>
 #include <sourcemod>
 
 public const Plugin myinfo = {
@@ -39,6 +41,111 @@ static void BuyZones_Enable() {
 }
 
 //
+// Weapon Progression
+//
+
+static ConVar g_gungame_weapon_order_cvar;
+
+static ArrayList g_gungame_weapon_order;
+
+#define CSS_DEF_WEAPON_ORDER_SIZE 23
+static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
+    CSWeapon_GLOCK,     CSWeapon_USP,       CSWeapon_P228,    CSWeapon_DEAGLE,
+    CSWeapon_FIVESEVEN, CSWeapon_ELITE,     CSWeapon_M3,      CSWeapon_XM1014,
+    CSWeapon_TMP,       CSWeapon_MAC10,     CSWeapon_MP5NAVY, CSWeapon_UMP45,
+    CSWeapon_P90,       CSWeapon_GALIL,     CSWeapon_FAMAS,   CSWeapon_AK47,
+    CSWeapon_SCOUT,     CSWeapon_M4A1,      CSWeapon_SG552,   CSWeapon_AUG,
+    CSWeapon_M249,      CSWeapon_HEGRENADE, CSWeapon_KNIFE};
+
+#define CSGO_DEF_WEAPON_ORDER_SIZE 31
+static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
+    CSWeapon_GLOCK, CSWeapon_P250,      CSWeapon_FIVESEVEN, CSWeapon_HKP2000,
+    CSWeapon_TEC9,  CSWeapon_ELITE,     CSWeapon_DEAGLE,    CSWeapon_SSG08,
+    CSWeapon_NOVA,  CSWeapon_XM1014,    CSWeapon_SAWEDOFF,  CSWeapon_M249,
+    CSWeapon_NEGEV, CSWeapon_MAG7,      CSWeapon_MP7,       CSWeapon_UMP45,
+    CSWeapon_P90,   CSWeapon_BIZON,     CSWeapon_MP9,       CSWeapon_MAC10,
+    CSWeapon_FAMAS, CSWeapon_GALILAR,   CSWeapon_AUG,       CSWeapon_SG556,
+    CSWeapon_M4A1,  CSWeapon_AK47,      CSWeapon_SCAR20,    CSWeapon_G3SG1,
+    CSWeapon_AWP,   CSWeapon_HEGRENADE, CSWeapon_KNIFE};
+
+static void WeaponOrder_Initialize() {
+  char folder_name[PLATFORM_MAX_PATH];
+  GetGameFolderName(folder_name, PLATFORM_MAX_PATH);
+
+  int weapon_order_size;
+  if (StrEqual(folder_name, "cstrike")) {
+    weapon_order_size = CSS_DEF_WEAPON_ORDER_SIZE;
+  } else if (StrEqual(folder_name, "csgo")) {
+    weapon_order_size = CSGO_DEF_WEAPON_ORDER_SIZE;
+  } else {
+    LogError("ERROR: Unsupported game %s", folder_name);
+    weapon_order_size = 0;
+  }
+
+  char default_cvar[PLATFORM_MAX_PATH] = "";
+  g_gungame_weapon_order = CreateArray(1, weapon_order_size);
+  for (int i = 0; i < weapon_order_size; i++) {
+    if (i != 0) {
+      StrCat(default_cvar, PLATFORM_MAX_PATH, ",");
+    }
+
+    CSWeaponID weapon_id;
+    if (StrEqual(folder_name, "cstrike")) {
+      weapon_id = kCssDefaultWeaponOrder[i];
+    } else {
+      weapon_id = kCsgoDefaultWeaponOrder[i];
+    }
+
+    g_gungame_weapon_order.Set(i, weapon_id);
+
+    char weapon_alias[PLATFORM_MAX_PATH];
+    CS_WeaponIDToAlias(weapon_id, weapon_alias, PLATFORM_MAX_PATH);
+
+    StrCat(default_cvar, PLATFORM_MAX_PATH, weapon_alias);
+  }
+
+  g_gungame_weapon_order_cvar =
+      CreateConVar("sm_lanofdoom_gungame_weapon_order", default_cvar,
+                   "In gungame mode, defines the order of the weapons.");
+}
+
+static void WeaponOrder_Reload() {
+  static const int MAX_WEAPON_NAME_LENGTH = 50;
+  static const int MAX_NUM_WEAPONS = 100;
+
+  char weapon_order[MAX_WEAPON_NAME_LENGTH * MAX_NUM_WEAPONS];
+  GetConVarString(g_gungame_weapon_order_cvar, weapon_order,
+                  sizeof(weapon_order));
+
+  char split_weapon_order[MAX_NUM_WEAPONS, MAX_WEAPON_NAME_LENGTH];
+  int num_weapons = ExplodeString(weapon_order, ",", split_weapon_order,
+                                  MAX_NUM_WEAPONS, MAX_WEAPON_NAME_LENGTH);
+
+  ArrayList new_weapon_order = CreateArray(1, num_weapons);
+  for (int i = 0; i < num_weapons; i++) {
+    CSWeaponID id = CS_AliasToWeaponID(split_weapon_order[i]);
+    if (id == CSWeapon_NONE || !CS_IsValidWeaponID(id)) {
+      LogError("ERROR: Invalid weapon %s", split_weapon_order[i]);
+      CloseHandle(new_weapon_order);
+    }
+
+    new_weapon_order.Set(i, id);
+  }
+
+  CloseHandle(g_gungame_weapon_order);
+
+  g_gungame_weapon_order = new_weapon_order;
+}
+
+static CSWeaponID WeaponOrder_GetLevel(int level) {
+  if (level > g_gungame_weapon_order.Length) {
+    return CSWeapon_NONE;
+  }
+
+  return g_gungame_weapon_order.Get(level);
+}
+
+//
 // GunGame Toggle
 //
 
@@ -47,9 +154,8 @@ static bool g_gungame_enabled = false;
 static ConVar g_gungame_enabled_cvar;
 
 static void GunGame_Initialize() {
-  g_gungame_enabled_cvar =
-      CreateConVar("sm_lanofdoom_gungame_enabled", "0",
-                   "If true, gungame mode is enabled.");
+  g_gungame_enabled_cvar = CreateConVar("sm_lanofdoom_gungame_enabled", "0",
+                                        "If true, gungame mode is enabled.");
   GunGame_UpdateFromCvar();
 
   g_gungame_enabled_cvar.AddChangeHook(GunGame_OnCvarChanged);
@@ -84,6 +190,8 @@ static void GunGame_UpdateFromCvar() {
 //
 
 public void OnPluginStart() {
+  WeaponOrder_Initialize();
+
   // Initialize GunGame Last
   GunGame_Initialize();
 }
