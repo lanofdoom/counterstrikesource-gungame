@@ -41,6 +41,70 @@ static void BuyZones_Enable() {
 }
 
 //
+// Kill Tracking
+//
+
+static bool g_game_state_enable = false;
+
+static ArrayList g_player_kills;
+
+static void KillTracking_Initialize() {
+  g_player_kills = CreateArray(1, 0);
+}
+
+static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
+  if (g_game_state_enable) {
+    return;
+  }
+
+  int attacker_client = GetClientOfUserId(attacker_userid);
+  if (!attacker_client) {
+    return;
+  }
+
+  int victim_client = GetClientOfUserId(victim_userid);
+  if (!victim_client) {
+    return;
+  }
+
+  int attacker_team = GetClientTeam(attacker_client);
+  int victim_team = GetClientTeam(victim_client);
+
+  if (attacker_team == victim_team) {
+    return;
+  }
+
+  while (g_player_kills.Length <= attacker_userid) {
+    g_player_kills.Push(0);
+  }
+
+  int old_kills = g_player_kills.Get(attacker_userid);
+  int new_kills = old_kills + 1;
+  g_player_kills.Set(attacker_userid, new_kills);
+}
+
+static void KillTracking_Reset() {
+  g_player_kills.Clear();
+}
+
+static void KillTracking_Enable() {
+  KillTracking_Reset();
+  g_game_state_enable = true;
+}
+
+static void KillTracking_Disable() {
+  g_game_state_enable = false
+}
+
+static int KillTracking_Get(int userid) {
+  if (userid <= g_player_kills.Length) {
+    return g_player_kills.Get(userid);
+  }
+
+  return 0;
+}
+
+//
 // Levels
 //
 
@@ -246,12 +310,36 @@ static void GunGame_UpdateFromCvar() {
 }
 
 //
+// Hooks
+//
+
+static Action OnPlayerDeath(Event event, const char[] name,
+                            bool dont_broadcast) {
+  int userid = GetEventInt(event, "userid");
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  int attacker = GetEventInt(event, "attacker");
+  if (!attacker) {
+    return Plugin_Continue;
+  }
+
+  KillTracking_OnPlayerDeath(attacker, userid);
+
+  return Plugin_Continue;
+}
+
+//
 // Forwards
 //
 
 public void OnPluginStart() {
+  KillTracking_Initialize();
   Levels_Initialize();
   WeaponOrder_Initialize();
+
+  HookEvent("player_death", OnPlayerDeath);
 
   // Initialize GunGame Last
   GunGame_Initialize();
