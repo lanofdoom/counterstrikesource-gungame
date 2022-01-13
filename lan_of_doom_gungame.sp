@@ -41,6 +41,66 @@ static void BuyZones_Enable() {
 }
 
 //
+// Levels
+//
+
+static ConVar g_gungame_kills_per_level_cvar;
+
+static ArrayList g_gungame_kills_per_level;
+
+static void Levels_Initialize() {
+  g_gungame_kills_per_level = CreateArray(1, 0);
+  g_gungame_kills_per_level_cvar =
+      CreateConVar("sm_lanofdoom_gungame_kills_per_level", "",
+                   "In gungame mode, how many kills are required in order " ...
+                   "to advance past each level in the weapon order as a. " ...
+                   "comma-separated list. Any values beyond the number of " ...
+                   "weapons in the weapon order will be ignored. Further, " ...
+                   "if there are fewer entries in this list than there are " ...
+                   "in the weapon order a value of 1 kill per level is used.");
+}
+
+static void Levels_Reload() {
+  static const int MAX_KILLS_PER_LEVEL_CHARS = 6;
+  static const int MAX_NUM_LEVELS = 100;
+
+  char kills_per_level[MAX_KILLS_PER_LEVEL_CHARS * MAX_NUM_LEVELS];
+  GetConVarString(g_gungame_kills_per_level_cvar, kills_per_level,
+                  sizeof(kills_per_level));
+
+  char split_kills_per_level[MAX_NUM_LEVELS][MAX_KILLS_PER_LEVEL_CHARS];
+  int num_levels = ExplodeString(kills_per_level, ",", split_kills_per_level,
+                                 MAX_NUM_LEVELS, MAX_KILLS_PER_LEVEL_CHARS);
+
+  g_gungame_kills_per_level.Resize(num_levels);
+
+  for (int i = 0; i < num_levels; i++) {
+    int kills = StringToInt(split_kills_per_level[i]);
+    if (kills <= 0) {
+      kills = 1;
+    }
+
+    new_kills_per_level.Set(i, kills);
+  } 
+}
+
+static int Levels_GetLevel(int kills) {
+  for (int i = 0; i < g_gungame_kills_per_level.Length; i++) {
+    if (kills == 0) {
+      return i;
+    }
+
+    kills -= g_gungame_kills_per_level.Get(i);
+
+    if (kills < 0) {
+      return i;
+    }
+  }
+
+  return kills;
+}
+
+//
 // Weapon Progression
 //
 
@@ -117,7 +177,7 @@ static void WeaponOrder_Reload() {
   GetConVarString(g_gungame_weapon_order_cvar, weapon_order,
                   sizeof(weapon_order));
 
-  char split_weapon_order[MAX_NUM_WEAPONS, MAX_WEAPON_NAME_LENGTH];
+  char split_weapon_order[MAX_NUM_WEAPONS][MAX_WEAPON_NAME_LENGTH];
   int num_weapons = ExplodeString(weapon_order, ",", split_weapon_order,
                                   MAX_NUM_WEAPONS, MAX_WEAPON_NAME_LENGTH);
 
@@ -190,6 +250,7 @@ static void GunGame_UpdateFromCvar() {
 //
 
 public void OnPluginStart() {
+  Levels_Initialize();
   WeaponOrder_Initialize();
 
   // Initialize GunGame Last
