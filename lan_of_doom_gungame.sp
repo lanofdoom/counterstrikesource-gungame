@@ -1,4 +1,5 @@
 #include <cstrike>
+#include <sdkhooks>
 #include <sdktools>
 #include <sourcemod>
 
@@ -48,9 +49,7 @@ static bool g_game_state_enable = false;
 
 static ArrayList g_player_kills;
 
-static void KillTracking_Initialize() {
-  g_player_kills = CreateArray(1, 0);
-}
+static void KillTracking_Initialize() { g_player_kills = CreateArray(1, 0); }
 
 static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   if (g_game_state_enable) {
@@ -83,18 +82,14 @@ static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   g_player_kills.Set(attacker_userid, new_kills);
 }
 
-static void KillTracking_Reset() {
-  g_player_kills.Clear();
-}
+static void KillTracking_Reset() { g_player_kills.Clear(); }
 
 static void KillTracking_Enable() {
   KillTracking_Reset();
   g_game_state_enable = true;
 }
 
-static void KillTracking_Disable() {
-  g_game_state_enable = false
-}
+static void KillTracking_Disable() { g_game_state_enable = false }
 
 static int KillTracking_Get(int userid) {
   if (userid <= g_player_kills.Length) {
@@ -145,7 +140,7 @@ static void Levels_Reload() {
     }
 
     new_kills_per_level.Set(i, kills);
-  } 
+  }
 }
 
 static int Levels_GetLevel(int kills) {
@@ -165,7 +160,164 @@ static int Levels_GetLevel(int kills) {
 }
 
 //
-// Weapon Progression
+// Weapon Manager
+//
+
+static bool g_weapon_manager_enabled = false;
+
+static ArrayList g_player_weapons;
+
+static void WeaponManager_Initialize() { g_player_weapons = CreateArray(1, 0); }
+
+static CSWeaponID WeaponManager_Get(int userid) {
+  while (g_player_weapons.Length <= userid) {
+    g_player_weapons.Push(WeaponOrder_GetLevel(0));
+  }
+
+  return g_player_weapons.Get(userid);
+}
+
+static void WeaponManager_RefreshWeapon(int userid) {
+  int client = GetClientUserId(client);
+  if (!client) {
+    return;
+  }
+
+  CSWeaponID weapon = WeaponManager_Get(userid);
+  if (weapon == CSWeapon_NONE) {
+    return;
+  }
+
+  int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
+  if (entity >= 0) {
+    RemovePlayerItem(client, entity);
+  }
+
+  entity = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
+  if (entity >= 0) {
+    RemovePlayerItem(client, entity);
+  }
+
+  entity = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
+  if (entity >= 0) {
+    RemovePlayerItem(client, entity);
+  }
+
+  for (;;) {
+    entity = GetPlayerWeaponSlot(client, CS_SLOT_GRENADE);
+    if (entity < 0) {
+      break;
+    }
+
+    RemovePlayerItem(client, entity);
+  }
+
+  char weapon_alias[PLATFORM_MAX_PATH];
+  CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
+
+  char weapon_classname[PLATFORM_MAX_PATH];
+  Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
+
+  GivePlayerItem(client, weapon_classname);
+}
+
+static void WeaponManager_OnPlayerDeath(int attacker_userid) {
+  if (!g_weapon_manager_enabled) {
+    return;
+  }
+
+  CSWeaponID old_weapon = WeaponManager_Get(attacker_userid);
+  int kills = KillTracking_Get(attacker_userid);
+  int level = Levels_GetLevel(kills);
+  CSWeaponID new_weapon = WeaponOrder_GetLevel(level);
+
+  if (new_weapon == CSWeapon_NONE) {
+    return;
+  }
+
+  g_player_weapons.Set(attacker_userid, new_weapon);
+
+  if (old_weapon != new_weapon) {
+    WeaponManager_RefreshWeapon(attacker_userid);
+  }
+}
+
+static void WeaponManager_OnPlayerSpawn(int userid) {
+  if (!g_weapon_manager_enabled) {
+    return;
+  }
+
+  WeaponManager_RefreshWeapon(userid);
+}
+
+static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
+  if (!g_weapon_manager_enabled) {
+    return Plugin_Continue;
+  }
+
+  int userid = GetClientUserId(client);
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  char alias[PLATFORM_MAX_PATH];
+  if (!GetEntityClassname(weapon, alias, PLATFORM_MAX_PATH)) {
+    return Plugin_Continue;
+  }
+
+  if (ReplaceString(alias, PLATFORM_MAX_PATH, "weapon_", "", false) != 1) {
+    return Plugin_Continue;
+  }
+
+  CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
+  if (weapon_id == WeaponManager_Get(userid)) {
+    return Plugin_Continue;
+  }
+
+  return Plugin_Stop;
+}
+
+static Action WeaponManager_OnWeaponDrop(int client, int weapon) {
+  if (g_weapon_manager_enabled) {
+    return Plugin_Stop;
+  }
+
+  return Plugin_Continue;
+}
+
+// TODO: Handle Grenades
+
+static void WeaponManager_OnPlayerActivate(int client) {
+  SDKHook(client, SDKHook_WeaponCanUse, WeaponManager_OnWeaponCanUse);
+  SDKHook(client, SDKHook_WeaponDrop, WeaponManager_OnWeaponDrop);
+}
+
+static void WeaponManager_Reset() {
+  KillTracking_Reset();
+  g_player_weapons.Clear();
+}
+
+static void WeaponManager_Enable() {
+  g_weapon_manager_enabled = true;
+  KillTracking_Enable();
+
+  WeaponManager_Reset();
+  for (int client = 1; client <= MaxClients; client++) {
+    if (IsClientInGame(client) && IsPlayerAlive(client)) {
+      int userid = GetClientUserId(client);
+      if (!userid) {
+        continue;
+      }
+
+      WeaponManager_RefreshWeapon(userid);
+    }
+  }
+}
+
+static void WeaponManager_Disable() { g_weapon_manager_enabled = false; }
+
+//
+// Weapon Order
 //
 
 static ConVar g_gungame_weapon_order_cvar;
@@ -313,6 +465,35 @@ static void GunGame_UpdateFromCvar() {
 // Hooks
 //
 
+static Action OnPlayerActivate(Event event, const char[] name,
+                               bool dont_broadcast) {
+  int userid = GetEventInt(event, "userid");
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  int client = GetClientOfUserId(userid);
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  WeaponManager_OnPlayerActivate(client);
+
+  return Plugin_Continue;
+}
+
+static Action OnPlayerSpawn(Event event, const char[] name,
+                            bool dont_broadcast) {
+  int userid = GetEventInt(event, "userid");
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  WeaponManager_OnPlayerSpawn(userid);
+
+  return Plugin_Continue;
+}
+
 static Action OnPlayerDeath(Event event, const char[] name,
                             bool dont_broadcast) {
   int userid = GetEventInt(event, "userid");
@@ -326,6 +507,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
   }
 
   KillTracking_OnPlayerDeath(attacker, userid);
+  WeaponManager_OnPlayerDeath(attacker);
 
   return Plugin_Continue;
 }
@@ -337,9 +519,12 @@ static Action OnPlayerDeath(Event event, const char[] name,
 public void OnPluginStart() {
   KillTracking_Initialize();
   Levels_Initialize();
+  WeaponManager_Initialize();
   WeaponOrder_Initialize();
 
+  HookEvent("player_activate", OnPlayerActivate);
   HookEvent("player_death", OnPlayerDeath);
+  HookEvent("player_spawn", OnPlayerSpawn);
 
   // Initialize GunGame Last
   GunGame_Initialize();
