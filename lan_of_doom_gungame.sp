@@ -89,7 +89,7 @@ static void KillTracking_Enable() {
   g_game_state_enable = true;
 }
 
-static void KillTracking_Disable() { g_game_state_enable = false }
+static void KillTracking_Disable() { g_game_state_enable = false; }
 
 static int KillTracking_Get(int userid) {
   if (userid <= g_player_kills.Length) {
@@ -107,6 +107,9 @@ static ConVar g_gungame_kills_per_level_cvar;
 
 static ArrayList g_gungame_kills_per_level;
 
+#define MAX_KILLS_PER_LEVEL_CHARS 6
+#define MAX_NUM_LEVELS 100
+
 static void Levels_Initialize() {
   g_gungame_kills_per_level = CreateArray(1, 0);
   g_gungame_kills_per_level_cvar =
@@ -120,9 +123,6 @@ static void Levels_Initialize() {
 }
 
 static void Levels_Reload() {
-  static const int MAX_KILLS_PER_LEVEL_CHARS = 6;
-  static const int MAX_NUM_LEVELS = 100;
-
   char kills_per_level[MAX_KILLS_PER_LEVEL_CHARS * MAX_NUM_LEVELS];
   GetConVarString(g_gungame_kills_per_level_cvar, kills_per_level,
                   sizeof(kills_per_level));
@@ -132,14 +132,13 @@ static void Levels_Reload() {
                                  MAX_NUM_LEVELS, MAX_KILLS_PER_LEVEL_CHARS);
 
   g_gungame_kills_per_level.Resize(num_levels);
-
   for (int i = 0; i < num_levels; i++) {
     int kills = StringToInt(split_kills_per_level[i]);
     if (kills <= 0) {
       kills = 1;
     }
 
-    new_kills_per_level.Set(i, kills);
+    g_gungame_kills_per_level.Set(i, kills);
   }
 }
 
@@ -324,6 +323,9 @@ static ConVar g_gungame_weapon_order_cvar;
 
 static ArrayList g_gungame_weapon_order;
 
+#define MAX_WEAPON_NAME_LENGTH 50
+#define MAX_NUM_WEAPONS 100
+
 #define CSS_DEF_WEAPON_ORDER_SIZE 23
 static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_GLOCK,     CSWeapon_USP,       CSWeapon_P228,    CSWeapon_DEAGLE,
@@ -386,9 +388,6 @@ static void WeaponOrder_Initialize() {
 }
 
 static void WeaponOrder_Reload() {
-  static const int MAX_WEAPON_NAME_LENGTH = 50;
-  static const int MAX_NUM_WEAPONS = 100;
-
   char weapon_order[MAX_WEAPON_NAME_LENGTH * MAX_NUM_WEAPONS];
   GetConVarString(g_gungame_weapon_order_cvar, weapon_order,
                   sizeof(weapon_order));
@@ -422,6 +421,65 @@ static CSWeaponID WeaponOrder_GetLevel(int level) {
 }
 
 //
+// Win Condition
+//
+
+static bool g_win_condition_enabled = false;
+
+static void WinCondition_OnPlayerDeath(int attacker_userid) {
+  if (!g_win_condition_enabled) {
+    return;
+  }
+
+  CSWeaponID weapon = WeaponManager_Get(attacker_userid);
+  if (weapon != CSWeapon_NONE) {
+    return;
+  }
+
+  CSRoundEndReason reason = CSRoundEnd_Draw;
+  int client = GetClientOfUserId(attacker_userid);
+  if (client) {
+    char name[PLATFORM_MAX_PATH];
+    if (GetClientName(client, name, PLATFORM_MAX_PATH)) {
+      PrintToChatAll("%s wins");
+    }
+
+    int team = GetClientTeam(client);
+    if (team == CS_TEAM_CT) {
+      reason = CSRoundEnd_CTWin;
+    } else if (team == CS_TEAM_T) {
+      reason = CSRoundEnd_TerroristWin;
+    }
+  }
+
+  CS_TerminateRound(2.0, reason);
+
+  int entity = CreateEntityByName("game_end");
+  DispatchSpawn(entity);
+  AcceptEntityInput(entity, "EndGame");
+}
+
+static void WinCondition_Enable() {
+  if (g_win_condition_enabled) {
+    return;
+  }
+
+  WeaponManager_Enable();
+
+  g_win_condition_enabled = true;
+}
+
+static void WinCondition_Disable() {
+  if (!g_win_condition_enabled) {
+    return;
+  }
+
+  WeaponManager_Disable();
+
+  g_win_condition_enabled = false;
+}
+
+//
 // GunGame Toggle
 //
 
@@ -450,10 +508,18 @@ static void GunGame_UpdateFromCvar() {
 
   if (enabled) {
     BuyZones_Disable();
+    KillTracking_Enable();
+    Levels_Reload();
+    WeaponManager_Enable();
+    WeaponOrder_Reload();
+    WinCondition_Enable();
 
     PrintHintTextToAll("GunGame Started");
   } else {
     BuyZones_Enable();
+    KillTracking_Disable();
+    WeaponManager_Disable();
+    WinCondition_Disable();
 
     PrintHintTextToAll("GunGame Stopped");
   }
@@ -508,6 +574,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
 
   KillTracking_OnPlayerDeath(attacker, userid);
   WeaponManager_OnPlayerDeath(attacker);
+  WinCondition_OnPlayerDeath(attacker);
 
   return Plugin_Continue;
 }
