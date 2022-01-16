@@ -27,6 +27,12 @@ static void BuyZones_UpdateEntities(const char[] classname,
   }
 }
 
+static void BuyZones_OnRoundStart() {
+  if (!g_buyzones_enabled) {
+    BuyZones_UpdateEntities(kBuyZoneEntityName, "Disable");
+  }
+}
+
 static void BuyZones_Disable() {
   if (g_buyzones_enabled) {
     BuyZones_UpdateEntities(kBuyZoneEntityName, "Disable");
@@ -77,9 +83,7 @@ static void GameEnd_Trigger(int winner_userid) {
   g_game_end_triggered = true;
 }
 
-static void GameEnd_OnMapStart() {
-  g_game_end_triggered = false;
-}
+static void GameEnd_OnMapStart() { g_game_end_triggered = false; }
 
 //
 // Kill Tracking
@@ -90,6 +94,8 @@ static bool g_game_state_enable = false;
 static ArrayList g_player_kills;
 
 static void KillTracking_Initialize() { g_player_kills = CreateArray(1, 0); }
+
+static void KillTracking_OnMapStart() { KillTracking_Reset(); }
 
 static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   if (!g_game_state_enable) {
@@ -161,6 +167,8 @@ static void Levels_Initialize() {
                    "if there are fewer entries in this list than there are " ...
                    "in the weapon order a value of 1 kill per level is used.");
 }
+
+static void Levels_OnMapStart() { Levels_Reload(); }
 
 static void Levels_Reload() {
   char kills_per_level[MAX_KILLS_PER_LEVEL_CHARS * MAX_NUM_LEVELS];
@@ -259,6 +267,8 @@ static void WeaponManager_RefreshWeapon(int userid) {
 
   GivePlayerItem(client, weapon_classname);
 }
+
+static void WeaponManager_OnMapStart() { WeaponManager_Reset(); }
 
 static void WeaponManager_OnPlayerDeath(int attacker_userid) {
   if (!g_weapon_manager_enabled) {
@@ -438,9 +448,7 @@ static void WeaponOrder_Initialize() {
   initialized = true;
 }
 
-static void WeaponOrder_OnMapStart() {
-  WeaponOrder_Initialize();
-}
+static void WeaponOrder_OnMapStart() { WeaponOrder_Initialize(); }
 
 static void WeaponOrder_Reload() {
   char weapon_order[MAX_WEAPON_NAME_LENGTH * MAX_NUM_WEAPONS];
@@ -572,6 +580,12 @@ static Action OnPlayerDeath(Event event, const char[] name,
   return Plugin_Continue;
 }
 
+static Action OnRoundStart(Event event, const char[] name,
+                           bool dont_broadcast) {
+  BuyZones_OnRoundStart();
+  return Plugin_Continue;
+}
+
 //
 // Forwards
 //
@@ -585,6 +599,7 @@ public void OnPluginStart() {
   HookEvent("player_activate", OnPlayerActivate);
   HookEvent("player_death", OnPlayerDeath);
   HookEvent("player_spawn", OnPlayerSpawn);
+  HookEvent("round_start", OnRoundStart);
 
   // Initialize GunGame Last
   GunGame_Initialize();
@@ -592,5 +607,8 @@ public void OnPluginStart() {
 
 public void OnMapStart() {
   GameEnd_OnMapStart();
+  KillTracking_OnMapStart();
+  Levels_OnMapStart();
+  WeaponManager_OnMapStart();
   WeaponOrder_OnMapStart();
 }
