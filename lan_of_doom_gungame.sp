@@ -42,6 +42,46 @@ static void BuyZones_Enable() {
 }
 
 //
+// Game End
+//
+
+static bool g_game_end_triggered = false;
+
+static void GameEnd_Trigger(int winner_userid) {
+  if (g_game_end_triggered) {
+    return;
+  }
+
+  CSRoundEndReason reason = CSRoundEnd_Draw;
+  int client = GetClientOfUserId(winner_userid);
+  if (client) {
+    char name[PLATFORM_MAX_PATH];
+    if (GetClientName(client, name, PLATFORM_MAX_PATH)) {
+      PrintToChatAll("%s wins!", name);
+    }
+
+    int team = GetClientTeam(client);
+    if (team == CS_TEAM_CT) {
+      reason = CSRoundEnd_CTWin;
+    } else if (team == CS_TEAM_T) {
+      reason = CSRoundEnd_TerroristWin;
+    }
+  }
+
+  CS_TerminateRound(2.0, reason);
+
+  int entity = CreateEntityByName("game_end");
+  DispatchSpawn(entity);
+  AcceptEntityInput(entity, "EndGame");
+
+  g_game_end_triggered = true;
+}
+
+static void GameEnd_OnMapStart() {
+  g_game_end_triggered = false;
+}
+
+//
 // Kill Tracking
 //
 
@@ -52,7 +92,7 @@ static ArrayList g_player_kills;
 static void KillTracking_Initialize() { g_player_kills = CreateArray(1, 0); }
 
 static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
-  if (g_game_state_enable) {
+  if (!g_game_state_enable) {
     return;
   }
 
@@ -155,7 +195,7 @@ static int Levels_GetLevel(int kills) {
     }
   }
 
-  return kills;
+  return g_gungame_kills_per_level.Length + kills;
 }
 
 //
@@ -177,7 +217,7 @@ static CSWeaponID WeaponManager_Get(int userid) {
 }
 
 static void WeaponManager_RefreshWeapon(int userid) {
-  int client = GetClientUserId(client);
+  int client = GetClientOfUserId(userid);
   if (!client) {
     return;
   }
@@ -231,7 +271,7 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid) {
   CSWeaponID new_weapon = WeaponOrder_GetLevel(level);
 
   if (new_weapon == CSWeapon_NONE) {
-    return;
+    GameEnd_Trigger(attacker_userid);
   }
 
   g_player_weapons.Set(attacker_userid, new_weapon);
@@ -398,6 +438,10 @@ static void WeaponOrder_Initialize() {
   initialized = true;
 }
 
+static void WeaponOrder_OnMapStart() {
+  WeaponOrder_Initialize();
+}
+
 static void WeaponOrder_Reload() {
   char weapon_order[MAX_WEAPON_NAME_LENGTH * MAX_NUM_WEAPONS];
   GetConVarString(g_gungame_weapon_order_cvar, weapon_order,
@@ -424,70 +468,11 @@ static void WeaponOrder_Reload() {
 }
 
 static CSWeaponID WeaponOrder_GetLevel(int level) {
-  if (level > g_gungame_weapon_order.Length) {
+  if (level >= g_gungame_weapon_order.Length) {
     return CSWeapon_NONE;
   }
 
   return g_gungame_weapon_order.Get(level);
-}
-
-//
-// Win Condition
-//
-
-static bool g_win_condition_enabled = false;
-
-static void WinCondition_OnPlayerDeath(int attacker_userid) {
-  if (!g_win_condition_enabled) {
-    return;
-  }
-
-  CSWeaponID weapon = WeaponManager_Get(attacker_userid);
-  if (weapon != CSWeapon_NONE) {
-    return;
-  }
-
-  CSRoundEndReason reason = CSRoundEnd_Draw;
-  int client = GetClientOfUserId(attacker_userid);
-  if (client) {
-    char name[PLATFORM_MAX_PATH];
-    if (GetClientName(client, name, PLATFORM_MAX_PATH)) {
-      PrintToChatAll("%s wins");
-    }
-
-    int team = GetClientTeam(client);
-    if (team == CS_TEAM_CT) {
-      reason = CSRoundEnd_CTWin;
-    } else if (team == CS_TEAM_T) {
-      reason = CSRoundEnd_TerroristWin;
-    }
-  }
-
-  CS_TerminateRound(2.0, reason);
-
-  int entity = CreateEntityByName("game_end");
-  DispatchSpawn(entity);
-  AcceptEntityInput(entity, "EndGame");
-}
-
-static void WinCondition_Enable() {
-  if (g_win_condition_enabled) {
-    return;
-  }
-
-  WeaponManager_Enable();
-
-  g_win_condition_enabled = true;
-}
-
-static void WinCondition_Disable() {
-  if (!g_win_condition_enabled) {
-    return;
-  }
-
-  WeaponManager_Disable();
-
-  g_win_condition_enabled = false;
 }
 
 //
@@ -523,14 +508,12 @@ static void GunGame_UpdateFromCvar() {
     Levels_Reload();
     WeaponManager_Enable();
     WeaponOrder_Reload();
-    WinCondition_Enable();
 
     PrintHintTextToAll("GunGame Started");
   } else {
     BuyZones_Enable();
     KillTracking_Disable();
     WeaponManager_Disable();
-    WinCondition_Disable();
 
     PrintHintTextToAll("GunGame Stopped");
   }
@@ -585,7 +568,6 @@ static Action OnPlayerDeath(Event event, const char[] name,
 
   KillTracking_OnPlayerDeath(attacker, userid);
   WeaponManager_OnPlayerDeath(attacker);
-  WinCondition_OnPlayerDeath(attacker);
 
   return Plugin_Continue;
 }
@@ -609,5 +591,6 @@ public void OnPluginStart() {
 }
 
 public void OnMapStart() {
-  WeaponOrder_Initialize();
+  GameEnd_OnMapStart();
+  WeaponOrder_OnMapStart();
 }
