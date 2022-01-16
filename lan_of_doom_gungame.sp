@@ -270,9 +270,16 @@ static void WeaponManager_RefreshWeapon(int userid) {
 
 static void WeaponManager_OnMapStart() { WeaponManager_Reset(); }
 
-static void WeaponManager_OnPlayerDeath(int attacker_userid) {
+static void WeaponManager_OnPlayerDeath(int attacker_userid,
+                                        int victim_userid) {
   if (!g_weapon_manager_enabled) {
     return;
+  }
+
+  int victim_client = GetClientOfUserId(victim_userid);
+  if (victim_client) {
+    SDKUnhook(victim_client, SDKHook_WeaponCanUse,
+              WeaponManager_OnWeaponCanUse);
   }
 
   CSWeaponID old_weapon = WeaponManager_Get(attacker_userid);
@@ -297,6 +304,13 @@ static void WeaponManager_OnPlayerSpawn(int userid) {
   }
 
   WeaponManager_RefreshWeapon(userid);
+
+  int client = GetClientOfUserId(userid);
+  if (!client) {
+    return;
+  }
+
+  SDKHook(client, SDKHook_WeaponCanUse, WeaponManager_OnWeaponCanUse);
 }
 
 static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
@@ -337,7 +351,6 @@ static Action WeaponManager_OnWeaponDrop(int client, int weapon) {
 // TODO: Handle Grenades
 
 static void WeaponManager_OnPlayerActivate(int client) {
-  SDKHook(client, SDKHook_WeaponCanUse, WeaponManager_OnWeaponCanUse);
   SDKHook(client, SDKHook_WeaponDrop, WeaponManager_OnWeaponDrop);
 }
 
@@ -575,7 +588,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
   }
 
   KillTracking_OnPlayerDeath(attacker, userid);
-  WeaponManager_OnPlayerDeath(attacker);
+  WeaponManager_OnPlayerDeath(attacker, userid);
 
   return Plugin_Continue;
 }
