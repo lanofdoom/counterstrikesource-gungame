@@ -347,6 +347,15 @@ static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_AWP,   CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
 static void WeaponOrder_Initialize() {
+  static bool initialized = false;
+  if (initialized) {
+    return;
+  }
+
+  if (!CS_IsValidWeaponID(CSWeapon_GLOCK)) {
+    return;
+  }
+
   char folder_name[PLATFORM_MAX_PATH];
   GetGameFolderName(folder_name, PLATFORM_MAX_PATH);
 
@@ -385,6 +394,8 @@ static void WeaponOrder_Initialize() {
   g_gungame_weapon_order_cvar =
       CreateConVar("sm_lanofdoom_gungame_weapon_order", default_cvar,
                    "In gungame mode, defines the order of the weapons.");
+
+  initialized = true;
 }
 
 static void WeaponOrder_Reload() {
@@ -595,4 +606,8 @@ public void OnPluginStart() {
 
   // Initialize GunGame Last
   GunGame_Initialize();
+}
+
+public void OnMapStart() {
+  WeaponOrder_Initialize();
 }
