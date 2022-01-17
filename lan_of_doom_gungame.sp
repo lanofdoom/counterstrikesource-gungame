@@ -238,16 +238,19 @@ static void WeaponManager_RefreshWeapon(int userid) {
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
   if (entity >= 0) {
     RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
   if (entity >= 0) {
     RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
   if (entity >= 0) {
     RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   for (;;) {
@@ -257,6 +260,7 @@ static void WeaponManager_RefreshWeapon(int userid) {
     }
 
     RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   char weapon_alias[PLATFORM_MAX_PATH];
@@ -266,6 +270,10 @@ static void WeaponManager_RefreshWeapon(int userid) {
   Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
 
   GivePlayerItem(client, weapon_classname);
+
+  if (weapon == CSWeapon_HEGRENADE) {
+    GivePlayerItem(client, "weapon_knife");
+  }
 }
 
 static void WeaponManager_OnMapStart() { WeaponManager_Reset(); }
@@ -333,6 +341,15 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
   }
 
   CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
+
+  if (weapon_id == CSWeapon_C4) {
+    return Plugin_Continue;
+  }
+
+  if (weapon_id == CSWeapon_KNIFE) {
+    weapon_id = CSWeapon_HEGRENADE;
+  }
+
   if (weapon_id == WeaponManager_Get(userid)) {
     return Plugin_Continue;
   }
@@ -348,7 +365,24 @@ static Action WeaponManager_OnWeaponDrop(int client, int weapon) {
   return Plugin_Continue;
 }
 
-// TODO: Handle Grenades
+static void WeaponManager_OnHEGrenadeDetonate(int userid) {
+  if (!g_weapon_manager_enabled) {
+    return;
+  }
+
+  int client = GetClientOfUserId(userid);
+  if (!client) {
+    return;
+  }
+
+  if (!IsPlayerAlive(client)) {
+    return;
+  }
+
+  if (WeaponManager_Get(userid) == CSWeapon_HEGRENADE) {
+    GivePlayerItem(client, "weapon_hegrenade");
+  }
+}
 
 static void WeaponManager_OnPlayerActivate(int client) {
   SDKHook(client, SDKHook_WeaponDrop, WeaponManager_OnWeaponDrop);
@@ -599,6 +633,17 @@ static Action OnRoundStart(Event event, const char[] name,
   return Plugin_Continue;
 }
 
+static Action OnHEGrenadeDetonate(Event event, const char[] name,
+                                  bool dont_broadcast) {
+  int userid = GetEventInt(event, "userid");
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  WeaponManager_OnHEGrenadeDetonate(userid);
+  return Plugin_Continue;
+}
+
 //
 // Forwards
 //
@@ -609,6 +654,7 @@ public void OnPluginStart() {
   WeaponManager_Initialize();
   WeaponOrder_Initialize();
 
+  HookEvent("hegrenade_detonate", OnHEGrenadeDetonate);
   HookEvent("player_activate", OnPlayerActivate);
   HookEvent("player_death", OnPlayerDeath);
   HookEvent("player_spawn", OnPlayerSpawn);
