@@ -346,11 +346,14 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
     return Plugin_Continue;
   }
 
-  if (weapon_id == CSWeapon_KNIFE) {
-    weapon_id = CSWeapon_HEGRENADE;
+  CSWeaponID level_weapon_id = WeaponManager_Get(userid);
+
+  if (level_weapon_id == weapon_id) {
+    return Plugin_Continue;
   }
 
-  if (weapon_id == WeaponManager_Get(userid)) {
+  if (level_weapon_id == CSWeapon_HEGRENADE &&
+      weapon_id == CSWeapon_KNIFE) {
     return Plugin_Continue;
   }
 
@@ -358,11 +361,30 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
 }
 
 static Action WeaponManager_OnWeaponDrop(int client, int weapon) {
-  if (g_weapon_manager_enabled) {
-    return Plugin_Stop;
+  if (!g_weapon_manager_enabled) {
+    return Plugin_Continue;
   }
 
-  return Plugin_Continue;
+  if (!IsValidEntity(weapon)) {
+    return Plugin_Continue;
+  }
+
+  char alias[PLATFORM_MAX_PATH];
+  if (!GetEntityClassname(weapon, alias, PLATFORM_MAX_PATH)) {
+    return Plugin_Continue;
+  }
+
+  if (ReplaceString(alias, PLATFORM_MAX_PATH, "weapon_", "", false) != 1) {
+    return Plugin_Continue;
+  }
+
+  CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
+
+  if (weapon_id == CSWeapon_C4) {
+    return Plugin_Continue;
+  }
+
+  return Plugin_Stop;
 }
 
 static void WeaponManager_OnHEGrenadeDetonate(int userid) {
