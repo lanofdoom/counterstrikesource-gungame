@@ -8,7 +8,7 @@ public const Plugin myinfo = {
     name = "LAN of DOOM GunGame",
     author = "LAN of DOOM",
     description = "Enables GunGame game mode",
-    version = "0.1.0",
+    version = "1.0.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
@@ -103,21 +103,24 @@ static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
     return;
   }
 
-  int attacker_client = GetClientOfUserId(attacker_userid);
-  if (!attacker_client) {
-    return;
-  }
+  int delta;
+  if (attacker_userid != victim_userid) {
+    int attacker_client = GetClientOfUserId(attacker_userid);
+    if (!attacker_client) {
+      return;
+    }
 
-  int victim_client = GetClientOfUserId(victim_userid);
-  if (!victim_client) {
-    return;
-  }
+    int victim_client = GetClientOfUserId(victim_userid);
+    if (!victim_client) {
+      return;
+    }
 
-  int attacker_team = GetClientTeam(attacker_client);
-  int victim_team = GetClientTeam(victim_client);
+    int attacker_team = GetClientTeam(attacker_client);
+    int victim_team = GetClientTeam(victim_client);
 
-  if (attacker_team == victim_team) {
-    return;
+    delta = (attacker_team == victim_team) ? 0 : 1;
+  } else {
+    delta = -1;
   }
 
   while (g_player_kills.Length <= attacker_userid) {
@@ -125,8 +128,10 @@ static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   }
 
   int old_kills = g_player_kills.Get(attacker_userid);
-  int new_kills = old_kills + 1;
-  g_player_kills.Set(attacker_userid, new_kills);
+  int new_kills = old_kills + delta;
+  if (new_kills >= 0) {
+    g_player_kills.Set(attacker_userid, new_kills);
+  }
 }
 
 static void KillTracking_Reset() { g_player_kills.Clear(); }
