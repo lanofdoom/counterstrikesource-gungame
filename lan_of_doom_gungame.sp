@@ -250,18 +250,21 @@ static void WeaponManager_RefreshWeapon(int userid) {
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
+    RemovePlayerItem(client, entity);
     AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
+    RemovePlayerItem(client, entity);
     AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
+    RemovePlayerItem(client, entity);
     AcceptEntityInput(entity, "Kill");
   }
 
@@ -272,6 +275,7 @@ static void WeaponManager_RefreshWeapon(int userid) {
     }
 
     CS_DropWeapon(client, entity, false, true);
+    RemovePlayerItem(client, entity);
     AcceptEntityInput(entity, "Kill");
   }
 
