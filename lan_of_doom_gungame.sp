@@ -417,8 +417,37 @@ static void WeaponManager_OnHEGrenadeDetonate(int userid) {
   }
 
   if (WeaponManager_Get(userid) == CSWeapon_HEGRENADE) {
-    GivePlayerItem(client, "weapon_hegrenade");
+    int entity = GetPlayerWeaponSlot(client, CS_SLOT_GRENADE);
+    if (entity < 0) {
+      GivePlayerItem(client, "weapon_hegrenade");
+    }
   }
+}
+
+static Action WeaponManager_OnGrenadeTimerElapsed(Handle timer, any userid) {
+  if (!g_weapon_manager_enabled) {
+    return Plugin_Stop;
+  }
+
+  WeaponManager_OnHEGrenadeDetonate(userid);
+
+  return Plugin_Stop;
+}
+
+static void WeaponManager_OnWeaponFire(int userid, const char[] weapon_name) {
+  if (!g_weapon_manager_enabled) {
+    return;
+  }
+
+  CSWeaponID weapon_id = CS_AliasToWeaponID(weapon_name);
+
+  if (weapon_id != CSWeapon_HEGRENADE) {
+    return;
+  }
+
+  // Fallback in case grenade does not detonate
+  CreateTimer(2.5, WeaponManager_OnGrenadeTimerElapsed, userid,
+              TIMER_FLAG_NO_MAPCHANGE);
 }
 
 static void WeaponManager_OnPlayerActivate(int client) {
@@ -681,6 +710,20 @@ static Action OnHEGrenadeDetonate(Event event, const char[] name,
   return Plugin_Continue;
 }
 
+static Action OnWeaponFire(Event event, const char[] name,
+                           bool dont_broadcast) {
+  int userid = GetEventInt(event, "userid");
+  if (!userid) {
+    return Plugin_Continue;
+  }
+
+  char weapon_name[PLATFORM_MAX_PATH];
+  GetEventString(event, "weapon", weapon_name, PLATFORM_MAX_PATH);
+
+  WeaponManager_OnWeaponFire(userid, weapon_name);
+  return Plugin_Continue;
+}
+
 //
 // Forwards
 //
@@ -696,6 +739,7 @@ public void OnPluginStart() {
   HookEvent("player_death", OnPlayerDeath);
   HookEvent("player_spawn", OnPlayerSpawn);
   HookEvent("round_start", OnRoundStart);
+  HookEvent("weapon_fire", OnWeaponFire);
 
   // Initialize GunGame Last
   GunGame_Initialize();
