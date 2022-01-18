@@ -1,4 +1,5 @@
 #include <cstrike>
+#include <mapchooser>
 #include <sdkhooks>
 #include <sdktools>
 #include <sourcemod>
@@ -207,6 +208,17 @@ static int Levels_GetLevel(int kills) {
 }
 
 //
+// Map Vote
+//
+
+static void MapVote_Trigger() {
+  if (EndOfMapVoteEnabled() && CanMapChooserStartVote() &&
+      !HasEndOfMapVoteFinished()) {
+    InitiateMapChooserVote(MapChange_MapEnd);
+  }
+}
+
+//
 // Weapon Manager
 //
 
@@ -299,6 +311,10 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
     GameEnd_Trigger(attacker_userid);
   }
 
+  if (WeaponOrder_GetLevel(level + 2) == CSWeapon_NONE) {
+    MapVote_Trigger();
+  }
+
   g_player_weapons.Set(attacker_userid, new_weapon);
 
   if (old_weapon != new_weapon) {
@@ -352,8 +368,7 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
     return Plugin_Continue;
   }
 
-  if (level_weapon_id == CSWeapon_HEGRENADE &&
-      weapon_id == CSWeapon_KNIFE) {
+  if (level_weapon_id == CSWeapon_HEGRENADE && weapon_id == CSWeapon_KNIFE) {
     return Plugin_Continue;
   }
 
