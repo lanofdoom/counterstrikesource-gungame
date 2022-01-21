@@ -5,10 +5,8 @@
 #include <sourcemod>
 
 public const Plugin myinfo = {
-    name = "LAN of DOOM GunGame",
-    author = "LAN of DOOM",
-    description = "Enables GunGame game mode",
-    version = "1.0.0",
+    name = "GunGame", author = "LAN of DOOM",
+    description = "Enables GunGame game mode", version = "1.0.1",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
@@ -115,10 +113,7 @@ static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
       return;
     }
 
-    int attacker_team = GetClientTeam(attacker_client);
-    int victim_team = GetClientTeam(victim_client);
-
-    delta = (attacker_team == victim_team) ? 0 : 1;
+    delta = 1;
   } else {
     delta = -1;
   }
@@ -159,13 +154,41 @@ static ConVar g_gungame_kills_per_level_cvar;
 
 static ArrayList g_gungame_kills_per_level;
 
+#define CSS_DEF_WEAPON_ORDER_SIZE 23
+#define CSGO_DEF_WEAPON_ORDER_SIZE 31
+
+#define DEAFULT_KILLS_ON_LAST_LEVEL "1"
+#define DEFAULT_KILLS_ON_OTHER_LEVELS "2,"
+
 #define MAX_KILLS_PER_LEVEL_CHARS 6
 #define MAX_NUM_LEVELS 100
 
 static void Levels_Initialize() {
   g_gungame_kills_per_level = CreateArray(1, 0);
+
+  char folder_name[PLATFORM_MAX_PATH];
+  GetGameFolderName(folder_name, PLATFORM_MAX_PATH);
+
+  int number_of_levels;
+  if (StrEqual(folder_name, "cstrike")) {
+    number_of_levels = CSS_DEF_WEAPON_ORDER_SIZE;
+  } else if (StrEqual(folder_name, "csgo")) {
+    number_of_levels = CSGO_DEF_WEAPON_ORDER_SIZE;
+  } else {
+    number_of_levels = 0;
+  }
+
+  char default_cvar[PLATFORM_MAX_PATH] = "";
+  for (int i = 0; i < number_of_levels; i++) {
+    if (i + 1 == number_of_levels) {
+      StrCat(default_cvar, PLATFORM_MAX_PATH, DEAFULT_KILLS_ON_LAST_LEVEL);
+    } else {
+      StrCat(default_cvar, PLATFORM_MAX_PATH, DEFAULT_KILLS_ON_OTHER_LEVELS);
+    }
+  }
+
   g_gungame_kills_per_level_cvar =
-      CreateConVar("sm_lanofdoom_gungame_kills_per_level", "",
+      CreateConVar("sm_lanofdoom_gungame_kills_per_level", default_cvar,
                    "In gungame mode, how many kills are required in order " ...
                    "to advance past each level in the weapon order as a. " ...
                    "comma-separated list. Any values beyond the number of " ...
@@ -328,6 +351,12 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
 
   if (old_weapon != new_weapon) {
     WeaponManager_RefreshWeapon(attacker_userid);
+  }
+
+  int next_kill_level = Levels_GetLevel(kills + 1);
+  CSWeaponID next_kill_weapon = WeaponOrder_GetLevel(next_kill_level);
+  if (next_kill_weapon == CSWeapon_NONE) {
+    PrintToChatAll("%s is one kill from victory");
   }
 }
 
@@ -498,7 +527,6 @@ static ArrayList g_gungame_weapon_order;
 #define MAX_WEAPON_NAME_LENGTH 50
 #define MAX_NUM_WEAPONS 100
 
-#define CSS_DEF_WEAPON_ORDER_SIZE 23
 static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_GLOCK,     CSWeapon_USP,       CSWeapon_P228,    CSWeapon_DEAGLE,
     CSWeapon_FIVESEVEN, CSWeapon_ELITE,     CSWeapon_M3,      CSWeapon_XM1014,
@@ -507,7 +535,6 @@ static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_SCOUT,     CSWeapon_M4A1,      CSWeapon_SG552,   CSWeapon_AUG,
     CSWeapon_M249,      CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
-#define CSGO_DEF_WEAPON_ORDER_SIZE 31
 static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_GLOCK, CSWeapon_P250,      CSWeapon_FIVESEVEN, CSWeapon_HKP2000,
     CSWeapon_TEC9,  CSWeapon_ELITE,     CSWeapon_DEAGLE,    CSWeapon_SSG08,
@@ -693,7 +720,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
 
   int attacker = GetEventInt(event, "attacker");
   if (!attacker) {
-    return Plugin_Continue;
+    attacker = userid;
   }
 
   KillTracking_OnPlayerDeath(attacker, userid);

@@ -22,4 +22,5 @@ kills are required in order to advance past each level in the weapon order as a
 comma-separated list. Any values beyond the number of weapons in the weapon
 order will be ignored. Further, if there are fewer entries in this list than
 there are in ``sm_lanofdoom_gungame_weapon_order`` a value of 1 kill per level
-is used for the unspecified levels. Empty by default.
+is used for the unspecified levels. The default value of this CVAR is undefined
+and may vary by game.
