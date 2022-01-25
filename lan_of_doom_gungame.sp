@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "1.0.1",
+    description = "Enables GunGame game mode", version = "1.1.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
@@ -289,13 +289,6 @@ static void WeaponManager_RefreshWeapon(int userid) {
     AcceptEntityInput(entity, "Kill");
   }
 
-  entity = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
-  if (entity >= 0) {
-    CS_DropWeapon(client, entity, false, true);
-    RemovePlayerItem(client, entity);
-    AcceptEntityInput(entity, "Kill");
-  }
-
   for (;;) {
     entity = GetPlayerWeaponSlot(client, CS_SLOT_GRENADE);
     if (entity < 0) {
@@ -307,16 +300,14 @@ static void WeaponManager_RefreshWeapon(int userid) {
     AcceptEntityInput(entity, "Kill");
   }
 
-  char weapon_alias[PLATFORM_MAX_PATH];
-  CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
+  if (weapon != CSWeapon_KNIFE) {
+    char weapon_alias[PLATFORM_MAX_PATH];
+    CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
 
-  char weapon_classname[PLATFORM_MAX_PATH];
-  Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
+    char weapon_classname[PLATFORM_MAX_PATH];
+    Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
 
-  GivePlayerItem(client, weapon_classname);
-
-  if (weapon == CSWeapon_HEGRENADE) {
-    GivePlayerItem(client, "weapon_knife");
+    GivePlayerItem(client, weapon_classname);
   }
 }
 
@@ -396,7 +387,7 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
 
   CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
 
-  if (weapon_id == CSWeapon_C4) {
+  if (weapon_id == CSWeapon_C4 || weapon_id == CSWeapon_KNIFE) {
     return Plugin_Continue;
   }
 
@@ -406,7 +397,7 @@ static Action WeaponManager_OnWeaponCanUse(int client, int weapon) {
     return Plugin_Continue;
   }
 
-  if (level_weapon_id == CSWeapon_HEGRENADE && weapon_id == CSWeapon_KNIFE) {
+  if (level_weapon_id == CSWeapon_HEGRENADE) {
     return Plugin_Continue;
   }
 
