@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "1.1.0",
+    description = "Enables GunGame game mode", version = "1.0.2",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
@@ -96,10 +96,24 @@ static void KillTracking_Initialize() { g_player_kills = CreateArray(1, 0); }
 
 static void KillTracking_OnMapStart() { KillTracking_Reset(); }
 
+static int KillTracking_GetLeader() {
+  int max = 0;
+  int leader = 0;
+  for (int userid = 0; userid < g_player_kills.Length; userid++) {
+    if (g_player_kills.Get(userid) > max) {
+      max = g_player_kills.Get(userid);
+      leader = userid;
+    }
+  }
+  return leader;
+}
+
 static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   if (!g_game_state_enable) {
     return;
   }
+
+  int old_leader = KillTracking_GetLeader();
 
   int delta;
   if (attacker_userid != victim_userid) {
@@ -126,6 +140,18 @@ static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
   int new_kills = old_kills + delta;
   if (new_kills >= 0) {
     g_player_kills.Set(attacker_userid, new_kills);
+  }
+
+  int new_leader = KillTracking_GetLeader();
+
+  if (old_leader != new_leader) {
+    int attacker_client = GetClientOfUserId(attacker_userid);
+    if (attacker_client) {
+      char name[PLATFORM_MAX_PATH];
+      if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
+        PrintCenterTextAll("%s gained the lead!");
+      }
+    }
   }
 }
 
@@ -342,12 +368,23 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
 
   if (old_weapon != new_weapon) {
     WeaponManager_RefreshWeapon(attacker_userid);
+    int attacker_client = GetClientOfUserId(attacker_userid);
+    if (attacker_client) {
+      char weapon_alias[PLATFORM_MAX_PATH];
+      CS_WeaponIDToAlias(weapon_id, weapon_alias, PLATFORM_MAX_PATH);
+
+      PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
+                  WeaponOrder_GetNumLevels(), weapon_alias);
+    }
   }
 
   int next_kill_level = Levels_GetLevel(kills + 1);
   CSWeaponID next_kill_weapon = WeaponOrder_GetLevel(next_kill_level);
   if (next_kill_weapon == CSWeapon_NONE) {
-    PrintToChatAll("%s is one kill from victory");
+    char name[PLATFORM_MAX_PATH];
+    if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
+      PrintCenterTextAll("%s is one kill from victory", name);
+    }
   }
 }
 
@@ -622,6 +659,8 @@ static CSWeaponID WeaponOrder_GetLevel(int level) {
 
   return g_gungame_weapon_order.Get(level);
 }
+
+static int WeaponOrder_GetNumLevels() { return g_gungame_weapon_order.Length; }
 
 //
 // GunGame Toggle
