@@ -371,7 +371,7 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
     int attacker_client = GetClientOfUserId(attacker_userid);
     if (attacker_client) {
       char weapon_alias[PLATFORM_MAX_PATH];
-      CS_WeaponIDToAlias(weapon_id, weapon_alias, PLATFORM_MAX_PATH);
+      CS_WeaponIDToAlias(new_weapon, weapon_alias, PLATFORM_MAX_PATH);
 
       PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                   WeaponOrder_GetNumLevels(), weapon_alias);
@@ -381,9 +381,12 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
   int next_kill_level = Levels_GetLevel(kills + 1);
   CSWeaponID next_kill_weapon = WeaponOrder_GetLevel(next_kill_level);
   if (next_kill_weapon == CSWeapon_NONE) {
-    char name[PLATFORM_MAX_PATH];
-    if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
-      PrintCenterTextAll("%s is one kill from victory", name);
+    int attacker_client = GetClientOfUserId(attacker_userid);
+    if (attacker_client) {
+      char name[PLATFORM_MAX_PATH];
+      if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
+        PrintCenterTextAll("%s is one kill from victory", name);
+      }
     }
   }
 }
@@ -570,7 +573,7 @@ static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_P90,       CSWeapon_XM1014,    CSWeapon_UMP45,   CSWeapon_MP7,
     CSWeapon_MAG7,      CSWeapon_NEGEV,     CSWeapon_M249,    CSWeapon_SAWEDOFF,
     CSWeapon_NOVA,      CSWeapon_SSG08,     CSWeapon_DEAGLE,  CSWeapon_ELITE,
-    CSWeapon_FIVESEVEN, CCSWeapon_TEC9,     CSWeapon_HKP2000, SWeapon_P250,
+    CSWeapon_FIVESEVEN, CSWeapon_TEC9,      CSWeapon_HKP2000, CSWeapon_P250,
     CSWeapon_GLOCK,     CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
 static void WeaponOrder_Initialize() {
