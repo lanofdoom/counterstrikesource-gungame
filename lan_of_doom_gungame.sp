@@ -154,7 +154,7 @@ static ConVar g_gungame_kills_per_level_cvar;
 
 static ArrayList g_gungame_kills_per_level;
 
-#define CSS_DEF_WEAPON_ORDER_SIZE 23
+#define CSS_DEF_WEAPON_ORDER_SIZE 24
 #define CSGO_DEF_WEAPON_ORDER_SIZE 31
 
 #define DEAFULT_KILLS_ON_LAST_LEVEL "1"
@@ -519,22 +519,22 @@ static ArrayList g_gungame_weapon_order;
 #define MAX_NUM_WEAPONS 100
 
 static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
-    CSWeapon_GLOCK,     CSWeapon_USP,       CSWeapon_P228,    CSWeapon_DEAGLE,
-    CSWeapon_FIVESEVEN, CSWeapon_ELITE,     CSWeapon_M3,      CSWeapon_XM1014,
-    CSWeapon_TMP,       CSWeapon_MAC10,     CSWeapon_MP5NAVY, CSWeapon_UMP45,
-    CSWeapon_P90,       CSWeapon_GALIL,     CSWeapon_FAMAS,   CSWeapon_AK47,
-    CSWeapon_SCOUT,     CSWeapon_M4A1,      CSWeapon_SG552,   CSWeapon_AUG,
-    CSWeapon_M249,      CSWeapon_HEGRENADE, CSWeapon_KNIFE};
+    CSWeapon_M249,   CSWeapon_AUG,   CSWeapon_SG552,     CSWeapon_M4A1,
+    CSWeapon_AK47,   CSWeapon_FAMAS, CSWeapon_GALIL,     CSWeapon_AWP,
+    CSWeapon_SCOUT,  CSWeapon_P90,   CSWeapon_MP5NAVY,   CSWeapon_XM1014,
+    CSWeapon_UMP45,  CSWeapon_MAC10, CSWeapon_TMP,       CSWeapon_M3,
+    CSWeapon_DEAGLE, CSWeapon_ELITE, CSWeapon_FIVESEVEN, CSWeapon_P228,
+    CSWeapon_USP,    CSWeapon_GLOCK, CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
 static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
-    CSWeapon_GLOCK, CSWeapon_P250,      CSWeapon_FIVESEVEN, CSWeapon_HKP2000,
-    CSWeapon_TEC9,  CSWeapon_ELITE,     CSWeapon_DEAGLE,    CSWeapon_SSG08,
-    CSWeapon_NOVA,  CSWeapon_XM1014,    CSWeapon_SAWEDOFF,  CSWeapon_M249,
-    CSWeapon_NEGEV, CSWeapon_MAG7,      CSWeapon_MP7,       CSWeapon_UMP45,
-    CSWeapon_P90,   CSWeapon_BIZON,     CSWeapon_MP9,       CSWeapon_MAC10,
-    CSWeapon_FAMAS, CSWeapon_GALILAR,   CSWeapon_AUG,       CSWeapon_SG556,
-    CSWeapon_M4A1,  CSWeapon_AK47,      CSWeapon_SCAR20,    CSWeapon_G3SG1,
-    CSWeapon_AWP,   CSWeapon_HEGRENADE, CSWeapon_KNIFE};
+    CSWeapon_AWP,       CSWeapon_G3SG1,     CSWeapon_SCAR20,  CSWeapon_M4A1,
+    CSWeapon_AK47,      CSWeapon_SG556,     CSWeapon_AUG,     CSWeapon_GALILAR,
+    CSWeapon_FAMAS,     CSWeapon_MAC10,     CSWeapon_MP9,     CSWeapon_BIZON,
+    CSWeapon_P90,       CSWeapon_XM1014,    CSWeapon_UMP45,   CSWeapon_MP7,
+    CSWeapon_MAG7,      CSWeapon_NEGEV,     CSWeapon_M249,    CSWeapon_SAWEDOFF,
+    CSWeapon_NOVA,      CSWeapon_SSG08,     CSWeapon_DEAGLE,  CSWeapon_ELITE,
+    CSWeapon_FIVESEVEN, CCSWeapon_TEC9,     CSWeapon_HKP2000, SWeapon_P250,
+    CSWeapon_GLOCK,     CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
 static void WeaponOrder_Initialize() {
   static bool initialized = false;
