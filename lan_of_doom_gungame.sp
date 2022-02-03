@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "1.0.2",
+    description = "Enables GunGame game mode", version = "1.1.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
@@ -83,94 +83,6 @@ static void GameEnd_Trigger(int winner_userid) {
 }
 
 static void GameEnd_OnMapStart() { g_game_end_triggered = false; }
-
-//
-// Kill Tracking
-//
-
-static bool g_game_state_enable = false;
-
-static ArrayList g_player_kills;
-
-static void KillTracking_Initialize() { g_player_kills = CreateArray(1, 0); }
-
-static void KillTracking_OnMapStart() { KillTracking_Reset(); }
-
-static int KillTracking_GetLeader() {
-  int max = 0;
-  int leader = 0;
-  for (int userid = 0; userid < g_player_kills.Length; userid++) {
-    if (g_player_kills.Get(userid) > max) {
-      max = g_player_kills.Get(userid);
-      leader = userid;
-    }
-  }
-  return leader;
-}
-
-static KillTracking_OnPlayerDeath(int attacker_userid, int victim_userid) {
-  if (!g_game_state_enable) {
-    return;
-  }
-
-  int old_leader = KillTracking_GetLeader();
-
-  int delta;
-  if (attacker_userid != victim_userid) {
-    int attacker_client = GetClientOfUserId(attacker_userid);
-    if (!attacker_client) {
-      return;
-    }
-
-    int victim_client = GetClientOfUserId(victim_userid);
-    if (!victim_client) {
-      return;
-    }
-
-    delta = 1;
-  } else {
-    delta = -1;
-  }
-
-  while (g_player_kills.Length <= attacker_userid) {
-    g_player_kills.Push(0);
-  }
-
-  int old_kills = g_player_kills.Get(attacker_userid);
-  int new_kills = old_kills + delta;
-  if (new_kills >= 0) {
-    g_player_kills.Set(attacker_userid, new_kills);
-  }
-
-  int new_leader = KillTracking_GetLeader();
-
-  if (old_leader != new_leader) {
-    int attacker_client = GetClientOfUserId(attacker_userid);
-    if (attacker_client) {
-      char name[PLATFORM_MAX_PATH];
-      if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
-        PrintCenterTextAll("%s gained the lead!");
-      }
-    }
-  }
-}
-
-static void KillTracking_Reset() { g_player_kills.Clear(); }
-
-static void KillTracking_Enable() {
-  KillTracking_Reset();
-  g_game_state_enable = true;
-}
-
-static void KillTracking_Disable() { g_game_state_enable = false; }
-
-static int KillTracking_Get(int userid) {
-  if (userid <= g_player_kills.Length) {
-    return g_player_kills.Get(userid);
-  }
-
-  return 0;
-}
 
 //
 // Levels
@@ -351,8 +263,13 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
               WeaponManager_OnWeaponCanUse);
   }
 
+  int attacker_client = GetClientOfUserId(attacker_userid);
+  if (!attacker_client) {
+    return;
+  }
+
   CSWeaponID old_weapon = WeaponManager_Get(attacker_userid);
-  int kills = KillTracking_Get(attacker_userid);
+  int kills = GetClientFrags(attacker_client);
   int level = Levels_GetLevel(kills);
   CSWeaponID new_weapon = WeaponOrder_GetLevel(level);
 
@@ -368,25 +285,20 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
 
   if (old_weapon != new_weapon) {
     WeaponManager_RefreshWeapon(attacker_userid);
-    int attacker_client = GetClientOfUserId(attacker_userid);
-    if (attacker_client) {
-      char weapon_alias[PLATFORM_MAX_PATH];
-      CS_WeaponIDToAlias(new_weapon, weapon_alias, PLATFORM_MAX_PATH);
 
-      PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
-                  WeaponOrder_GetNumLevels(), weapon_alias);
-    }
+    char weapon_alias[PLATFORM_MAX_PATH];
+    CS_WeaponIDToAlias(new_weapon, weapon_alias, PLATFORM_MAX_PATH);
+
+    PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
+                WeaponOrder_GetNumLevels(), weapon_alias);
   }
 
   int next_kill_level = Levels_GetLevel(kills + 1);
   CSWeaponID next_kill_weapon = WeaponOrder_GetLevel(next_kill_level);
   if (next_kill_weapon == CSWeapon_NONE) {
-    int attacker_client = GetClientOfUserId(attacker_userid);
-    if (attacker_client) {
-      char name[PLATFORM_MAX_PATH];
-      if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
-        PrintCenterTextAll("%s is one kill from victory", name);
-      }
+    char name[PLATFORM_MAX_PATH];
+    if (GetClientName(attacker_client, name, PLATFORM_MAX_PATH)) {
+      PrintCenterTextAll("%s is one kill from victory", name);
     }
   }
 }
@@ -524,13 +436,11 @@ static void WeaponManager_OnPlayerActivate(int client) {
 }
 
 static void WeaponManager_Reset() {
-  KillTracking_Reset();
   g_player_weapons.Clear();
 }
 
 static void WeaponManager_Enable() {
   g_weapon_manager_enabled = true;
-  KillTracking_Enable();
 
   WeaponManager_Reset();
   for (int client = 1; client <= MaxClients; client++) {
@@ -694,18 +604,12 @@ static void GunGame_UpdateFromCvar() {
 
   if (enabled) {
     BuyZones_Disable();
-    KillTracking_Enable();
     Levels_Reload();
     WeaponManager_Enable();
     WeaponOrder_Reload();
-
-    PrintHintTextToAll("GunGame Started");
   } else {
     BuyZones_Enable();
-    KillTracking_Disable();
     WeaponManager_Disable();
-
-    PrintHintTextToAll("GunGame Stopped");
   }
 
   g_gungame_enabled = enabled;
@@ -756,7 +660,6 @@ static Action OnPlayerDeath(Event event, const char[] name,
     attacker = userid;
   }
 
-  KillTracking_OnPlayerDeath(attacker, userid);
   WeaponManager_OnPlayerDeath(attacker, userid);
 
   return Plugin_Continue;
@@ -798,7 +701,6 @@ static Action OnWeaponFire(Event event, const char[] name,
 //
 
 public void OnPluginStart() {
-  KillTracking_Initialize();
   Levels_Initialize();
   WeaponManager_Initialize();
   WeaponOrder_Initialize();
@@ -816,7 +718,6 @@ public void OnPluginStart() {
 
 public void OnMapStart() {
   GameEnd_OnMapStart();
-  KillTracking_OnMapStart();
   Levels_OnMapStart();
   WeaponManager_OnMapStart();
   WeaponOrder_OnMapStart();
