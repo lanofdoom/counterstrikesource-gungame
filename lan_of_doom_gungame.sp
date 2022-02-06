@@ -187,7 +187,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
     attacker = userid;
   }
 
-  int attacker_client = GetClientOfUserId(userid);
+  int attacker_client = GetClientOfUserId(attacker);
   if (!attacker_client) {
     return Plugin_Continue;
   }
@@ -207,6 +207,9 @@ static Action OnPlayerDeath(Event event, const char[] name,
   CSWeaponID weapon;
   int level, num_levels;
   GetWeaponAndLevel(frags, weapon, level, num_levels);
+
+  PrintToServer("Old Frags: %d New Frags: %d Old Weapon: %d New Weapon: %d",
+                old_frags, frags, old_weapon, weapon);
 
   if (old_weapon != weapon) {
     char weapon_alias[PLATFORM_MAX_PATH];
