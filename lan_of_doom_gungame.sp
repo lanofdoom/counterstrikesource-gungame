@@ -196,8 +196,12 @@ static Action OnPlayerDeath(Event event, const char[] name,
 
   int frags;
   if (attacker == userid) {
-    frags = old_frags - 1;
-    // TODO: Don't allow frags to drop below 0
+    if (old_frags == 0) {
+      SetEntProp(attacker_client, Prop_Data, "m_iFrags", old_frags + 1);
+      frags = old_frags;
+    } else {
+      frags = old_frags - 1;
+    }
   } else {
     frags = old_frags + 1;
   }
