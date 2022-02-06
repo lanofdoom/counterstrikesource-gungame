@@ -76,6 +76,13 @@ static void GetWeaponAndLevel(int frags, CSWeaponID& weapon, int& level,
   weapon = weapon_order[level_base_zero];
 }
 
+static CSWeaponID GetWeapon(int frags) {
+  CSWeaponID result;
+  int unused_level, unused_num_levels;
+  GetWeaponAndLevel(frags, result, unused_level, unused_num_levels);
+  return result;
+}
+
 static void EquipWeapon(int client, CSWeaponID weapon) {
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
   if (entity >= 0) {
@@ -121,10 +128,7 @@ static void RefillHEGrenade(int userid) {
 
   int frags = GetClientFrags(client);
 
-  CSWeaponID weapon;
-  int unused_level, unused_num_levels;
-  GetWeaponAndLevel(frags, weapon, unused_level, unused_num_levels);
-
+  CSWeaponID weapon = GetWeapon(frags);
   if (weapon == CSWeapon_HEGRENADE) {
     EquipWeapon(client, CSWeapon_HEGRENADE);
   }
@@ -161,11 +165,7 @@ static Action OnPlayerSpawn(Event event, const char[] name,
   }
 
   int frags = GetClientFrags(client);
-
-  CSWeaponID weapon;
-  int unused_level, unused_num_levels;
-  GetWeaponAndLevel(frags, weapon, unused_level, unused_num_levels);
-
+  CSWeaponID weapon = GetWeapon(frags);
   EquipWeapon(client, weapon);
 
   return Plugin_Continue;
@@ -202,13 +202,11 @@ static Action OnPlayerDeath(Event event, const char[] name,
     old_frags = frags - 1;
   }
 
-  CSWeaponID old_weapon;
-  int old_level, unused_num_levels;
-  GetWeaponAndLevel(old_frags, old_weapon, old_level, unused_num_levels);
+  CSWeaponID old_weapon = GetWeapon(old_frags);
 
   CSWeaponID weapon;
   int level, num_levels;
-  GetWeaponAndLevel(frags, old_weapon, old_level, unused_num_levels);
+  GetWeaponAndLevel(frags, weapon, level, num_levels);
 
   if (old_weapon != weapon) {
     char weapon_alias[PLATFORM_MAX_PATH];
@@ -225,7 +223,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
   }
 
   if (level == num_levels) {
-    if (level != old_level) {
+    if (weapon != old_weapon) {
       char player_name[PLATFORM_MAX_PATH];
       if (GetClientName(attacker_client, player_name, PLATFORM_MAX_PATH)) {
         PrintCenterTextAll("%s is one kill from victory", player_name);
@@ -299,10 +297,7 @@ static Action OnWeaponCanUse(int client, int weapon) {
 
   int frags = GetClientFrags(client);
 
-  CSWeaponID level_weapon_id;
-  int unused_level, unused_num_levels;
-  GetWeaponAndLevel(frags, level_weapon_id, unused_level, unused_num_levels);
-
+  CSWeaponID level_weapon_id = GetWeapon(frags);
   if (level_weapon_id == weapon_id) {
     return Plugin_Continue;
   }
@@ -348,11 +343,7 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
     }
 
     int frags = GetClientFrags(client);
-
-    CSWeaponID weapon;
-    int unused_level, unused_num_levels;
-    GetWeaponAndLevel(frags, weapon, unused_level, unused_num_levels);
-
+    CSWeaponID weapon = GetWeapon(frags);
     EquipWeapon(client, weapon);
   }
 }
