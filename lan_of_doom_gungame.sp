@@ -256,9 +256,11 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
   }
 
   CSWeaponID old_weapon = WeaponManager_Get(attacker_userid);
-  int kills = GetClientFrags(attacker_client);
+  int kills = GetEntProp(attacker_client, Prop_Data, "m_iFrags");
   int level = Levels_GetLevel(kills);
   CSWeaponID new_weapon = WeaponOrder_GetLevel(level);
+
+  PrintToChat(attacker_client, "Frag Count: %d", kills);
 
   if (new_weapon == CSWeapon_NONE) {
     GameEnd_Trigger(attacker_userid);
@@ -278,7 +280,6 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
 
     PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                 WeaponOrder_GetNumLevels(), weapon_alias);
-    PrintToChat(attacker_client, "Frag Count: %d", kills);
   }
 
   int next_kill_level = Levels_GetLevel(kills + 1);
