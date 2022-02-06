@@ -212,10 +212,6 @@ static Action OnPlayerDeath(Event event, const char[] name,
   int level, num_levels;
   GetWeaponAndLevel(frags, weapon, level, num_levels);
 
-  PrintToChat(attacker_client,
-              "Old Frags: %d New Frags: %d Old Weapon: %d New Weapon: %d",
-              old_frags, frags, old_weapon, weapon);
-
   if (old_weapon != weapon) {
     char weapon_alias[PLATFORM_MAX_PATH];
     CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
