@@ -4,8 +4,7 @@
 #include <sdktools>
 #include <sourcemod>
 
-public
-const Plugin myinfo = {
+public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
     description = "Enables GunGame game mode", version = "2.0.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
@@ -357,20 +356,18 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
 // Forwards
 //
 
-public
-void OnClientPutInServer(int client) {
+public void OnClientPutInServer(int client) {
   SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
   SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 }
 
-public
-void OnPluginStart() {
+public void OnPluginStart() {
   g_gungame_enabled_cvar = CreateConVar("sm_lanofdoom_gungame_enabled", "1",
                                         "If true, gungame mode is enabled.");
   g_gungame_enabled_cvar.AddChangeHook(OnCvarChanged);
 
   HookEvent("hegrenade_detonate", OnHEGrenadeDetonate);
-  HookEvent("player_death", OnPlayerDeath);
+  HookEvent("player_death", OnPlayerDeath, EventHookMode_Pre);
   HookEvent("player_spawn", OnPlayerSpawn);
   HookEvent("weapon_fire", OnWeaponFire);
 }
