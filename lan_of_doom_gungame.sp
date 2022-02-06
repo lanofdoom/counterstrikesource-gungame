@@ -351,6 +351,11 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
     }
 
     int frags = GetClientFrags(client);
+    if (frags < 0) {
+      SetEntProp(client, Prop_Data, "m_iFrags", 0);
+      frags = 0;
+    }
+
     CSWeaponID weapon = GetWeapon(frags);
     EquipWeapon(client, weapon);
   }
