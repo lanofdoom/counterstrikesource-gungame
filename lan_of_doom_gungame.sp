@@ -92,8 +92,7 @@ static ConVar g_gungame_kills_per_level_cvar;
 
 static ArrayList g_gungame_kills_per_level;
 
-#define CSS_DEF_WEAPON_ORDER_SIZE 24
-#define CSGO_DEF_WEAPON_ORDER_SIZE 31
+#define DEAFULT_WEAPON_ORDER_SIZE 24
 
 #define DEAFULT_KILLS_ON_LAST_LEVEL "1"
 #define DEFAULT_KILLS_ON_OTHER_LEVELS "2,"
@@ -104,21 +103,9 @@ static ArrayList g_gungame_kills_per_level;
 static void Levels_Initialize() {
   g_gungame_kills_per_level = CreateArray(1, 0);
 
-  char folder_name[PLATFORM_MAX_PATH];
-  GetGameFolderName(folder_name, PLATFORM_MAX_PATH);
-
-  int number_of_levels;
-  if (StrEqual(folder_name, "cstrike")) {
-    number_of_levels = CSS_DEF_WEAPON_ORDER_SIZE;
-  } else if (StrEqual(folder_name, "csgo")) {
-    number_of_levels = CSGO_DEF_WEAPON_ORDER_SIZE;
-  } else {
-    number_of_levels = 0;
-  }
-
   char default_cvar[PLATFORM_MAX_PATH] = "";
-  for (int i = 0; i < number_of_levels; i++) {
-    if (i + 1 == number_of_levels) {
+  for (int i = 0; i < DEAFULT_WEAPON_ORDER_SIZE; i++) {
+    if (i + 1 == DEAFULT_WEAPON_ORDER_SIZE) {
       StrCat(default_cvar, PLATFORM_MAX_PATH, DEAFULT_KILLS_ON_LAST_LEVEL);
     } else {
       StrCat(default_cvar, PLATFORM_MAX_PATH, DEFAULT_KILLS_ON_OTHER_LEVELS);
@@ -277,7 +264,7 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
     GameEnd_Trigger(attacker_userid);
   }
 
-  if (WeaponOrder_GetLevel(level + 2) == CSWeapon_NONE) {
+  if (WeaponOrder_GetLevel(level + 3) == CSWeapon_NONE) {
     MapVote_Trigger();
   }
 
@@ -291,6 +278,7 @@ static void WeaponManager_OnPlayerDeath(int attacker_userid,
 
     PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                 WeaponOrder_GetNumLevels(), weapon_alias);
+    PrintToChat(attacker_client, "Frag Count: %d", kills);
   }
 
   int next_kill_level = Levels_GetLevel(kills + 1);
@@ -468,23 +456,13 @@ static ArrayList g_gungame_weapon_order;
 #define MAX_WEAPON_NAME_LENGTH 50
 #define MAX_NUM_WEAPONS 100
 
-static const CSWeaponID kCssDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
+static const CSWeaponID kDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
     CSWeapon_M249,   CSWeapon_AUG,   CSWeapon_SG552,     CSWeapon_M4A1,
     CSWeapon_AK47,   CSWeapon_FAMAS, CSWeapon_GALIL,     CSWeapon_AWP,
     CSWeapon_SCOUT,  CSWeapon_P90,   CSWeapon_MP5NAVY,   CSWeapon_XM1014,
     CSWeapon_UMP45,  CSWeapon_MAC10, CSWeapon_TMP,       CSWeapon_M3,
     CSWeapon_DEAGLE, CSWeapon_ELITE, CSWeapon_FIVESEVEN, CSWeapon_P228,
     CSWeapon_USP,    CSWeapon_GLOCK, CSWeapon_HEGRENADE, CSWeapon_KNIFE};
-
-static const CSWeaponID kCsgoDefaultWeaponOrder[CSGO_DEF_WEAPON_ORDER_SIZE] = {
-    CSWeapon_AWP,       CSWeapon_G3SG1,     CSWeapon_SCAR20,  CSWeapon_M4A1,
-    CSWeapon_AK47,      CSWeapon_SG556,     CSWeapon_AUG,     CSWeapon_GALILAR,
-    CSWeapon_FAMAS,     CSWeapon_MAC10,     CSWeapon_MP9,     CSWeapon_BIZON,
-    CSWeapon_P90,       CSWeapon_XM1014,    CSWeapon_UMP45,   CSWeapon_MP7,
-    CSWeapon_MAG7,      CSWeapon_NEGEV,     CSWeapon_M249,    CSWeapon_SAWEDOFF,
-    CSWeapon_NOVA,      CSWeapon_SSG08,     CSWeapon_DEAGLE,  CSWeapon_ELITE,
-    CSWeapon_FIVESEVEN, CSWeapon_TEC9,      CSWeapon_HKP2000, CSWeapon_P250,
-    CSWeapon_GLOCK,     CSWeapon_HEGRENADE, CSWeapon_KNIFE};
 
 static void WeaponOrder_Initialize() {
   static bool initialized = false;
@@ -496,37 +474,17 @@ static void WeaponOrder_Initialize() {
     return;
   }
 
-  char folder_name[PLATFORM_MAX_PATH];
-  GetGameFolderName(folder_name, PLATFORM_MAX_PATH);
-
-  int weapon_order_size;
-  if (StrEqual(folder_name, "cstrike")) {
-    weapon_order_size = CSS_DEF_WEAPON_ORDER_SIZE;
-  } else if (StrEqual(folder_name, "csgo")) {
-    weapon_order_size = CSGO_DEF_WEAPON_ORDER_SIZE;
-  } else {
-    LogError("ERROR: Unsupported game %s", folder_name);
-    weapon_order_size = 0;
-  }
-
   char default_cvar[PLATFORM_MAX_PATH] = "";
   g_gungame_weapon_order = CreateArray(1, weapon_order_size);
-  for (int i = 0; i < weapon_order_size; i++) {
+  for (int i = 0; i < DEAFULT_WEAPON_ORDER_SIZE; i++) {
     if (i != 0) {
       StrCat(default_cvar, PLATFORM_MAX_PATH, ",");
     }
 
-    CSWeaponID weapon_id;
-    if (StrEqual(folder_name, "cstrike")) {
-      weapon_id = kCssDefaultWeaponOrder[i];
-    } else {
-      weapon_id = kCsgoDefaultWeaponOrder[i];
-    }
-
-    g_gungame_weapon_order.Set(i, weapon_id);
+    g_gungame_weapon_order.Set(i, kDefaultWeaponOrder[i]);
 
     char weapon_alias[PLATFORM_MAX_PATH];
-    CS_WeaponIDToAlias(weapon_id, weapon_alias, PLATFORM_MAX_PATH);
+    CS_WeaponIDToAlias(kDefaultWeaponOrder[i], weapon_alias, PLATFORM_MAX_PATH);
 
     StrCat(default_cvar, PLATFORM_MAX_PATH, weapon_alias);
   }
