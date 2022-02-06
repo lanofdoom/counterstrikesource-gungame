@@ -4,7 +4,8 @@
 #include <sdktools>
 #include <sourcemod>
 
-public const Plugin myinfo = {
+public
+const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
     description = "Enables GunGame game mode", version = "2.0.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
@@ -192,14 +193,14 @@ static Action OnPlayerDeath(Event event, const char[] name,
     return Plugin_Continue;
   }
 
-  int frags = GetClientFrags(attacker_client);
+  int old_frags = GetClientFrags(attacker_client);
 
-  int old_frags;
+  int frags;
   if (attacker == userid) {
-    old_frags = frags + 1;
+    frags = old_frags - 1;
     // TODO: Don't allow frags to drop below 0
   } else {
-    old_frags = frags - 1;
+    frags = old_frags + 1;
   }
 
   CSWeaponID old_weapon = GetWeapon(old_frags);
@@ -208,8 +209,9 @@ static Action OnPlayerDeath(Event event, const char[] name,
   int level, num_levels;
   GetWeaponAndLevel(frags, weapon, level, num_levels);
 
-  PrintToServer("Old Frags: %d New Frags: %d Old Weapon: %d New Weapon: %d",
-                old_frags, frags, old_weapon, weapon);
+  PrintToChat(attacker_client,
+              "Old Frags: %d New Frags: %d Old Weapon: %d New Weapon: %d",
+              old_frags, frags, old_weapon, weapon);
 
   if (old_weapon != weapon) {
     char weapon_alias[PLATFORM_MAX_PATH];
@@ -355,12 +357,14 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
 // Forwards
 //
 
-public void OnClientPutInServer(int client) {
+public
+void OnClientPutInServer(int client) {
   SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
   SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 }
 
-public void OnPluginStart() {
+public
+void OnPluginStart() {
   g_gungame_enabled_cvar = CreateConVar("sm_lanofdoom_gungame_enabled", "1",
                                         "If true, gungame mode is enabled.");
   g_gungame_enabled_cvar.AddChangeHook(OnCvarChanged);
