@@ -10,43 +10,6 @@ public const Plugin myinfo = {
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 //
-// Buy Zones
-//
-
-static bool g_buyzones_enabled = true;
-
-static const char kBuyZoneEntityName[] = "func_buyzone";
-
-static void BuyZones_UpdateEntities(const char[] classname,
-                                    const char[] action) {
-  int index = FindEntityByClassname(INVALID_ENT_REFERENCE, classname);
-  while (index != INVALID_ENT_REFERENCE) {
-    AcceptEntityInput(index, action);
-    index = FindEntityByClassname(index, classname)
-  }
-}
-
-static void BuyZones_OnRoundStart() {
-  if (!g_buyzones_enabled) {
-    BuyZones_UpdateEntities(kBuyZoneEntityName, "Disable");
-  }
-}
-
-static void BuyZones_Disable() {
-  if (g_buyzones_enabled) {
-    BuyZones_UpdateEntities(kBuyZoneEntityName, "Disable");
-  }
-  g_buyzones_enabled = false;
-}
-
-static void BuyZones_Enable() {
-  if (!g_buyzones_enabled) {
-    BuyZones_UpdateEntities(kBuyZoneEntityName, "Enable");
-  }
-  g_buyzones_enabled = true;
-}
-
-//
 // Game End
 //
 
@@ -562,12 +525,10 @@ static void GunGame_UpdateFromCvar() {
   }
 
   if (enabled) {
-    BuyZones_Disable();
     Levels_Reload();
     WeaponManager_Enable();
     WeaponOrder_Reload();
   } else {
-    BuyZones_Enable();
     WeaponManager_Disable();
   }
 
@@ -624,12 +585,6 @@ static Action OnPlayerDeath(Event event, const char[] name,
   return Plugin_Continue;
 }
 
-static Action OnRoundStart(Event event, const char[] name,
-                           bool dont_broadcast) {
-  BuyZones_OnRoundStart();
-  return Plugin_Continue;
-}
-
 static Action OnHEGrenadeDetonate(Event event, const char[] name,
                                   bool dont_broadcast) {
   int userid = GetEventInt(event, "userid");
@@ -668,7 +623,6 @@ public void OnPluginStart() {
   HookEvent("player_activate", OnPlayerActivate);
   HookEvent("player_death", OnPlayerDeath);
   HookEvent("player_spawn", OnPlayerSpawn);
-  HookEvent("round_start", OnRoundStart);
   HookEvent("weapon_fire", OnWeaponFire);
 
   // Initialize GunGame Last
