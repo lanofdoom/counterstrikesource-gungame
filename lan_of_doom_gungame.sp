@@ -456,7 +456,7 @@ static ArrayList g_gungame_weapon_order;
 #define MAX_WEAPON_NAME_LENGTH 50
 #define MAX_NUM_WEAPONS 100
 
-static const CSWeaponID kDefaultWeaponOrder[CSS_DEF_WEAPON_ORDER_SIZE] = {
+static const CSWeaponID kDefaultWeaponOrder[DEAFULT_WEAPON_ORDER_SIZE] = {
     CSWeapon_M249,   CSWeapon_AUG,   CSWeapon_SG552,     CSWeapon_M4A1,
     CSWeapon_AK47,   CSWeapon_FAMAS, CSWeapon_GALIL,     CSWeapon_AWP,
     CSWeapon_SCOUT,  CSWeapon_P90,   CSWeapon_MP5NAVY,   CSWeapon_XM1014,
@@ -475,7 +475,7 @@ static void WeaponOrder_Initialize() {
   }
 
   char default_cvar[PLATFORM_MAX_PATH] = "";
-  g_gungame_weapon_order = CreateArray(1, weapon_order_size);
+  g_gungame_weapon_order = CreateArray(1, DEAFULT_WEAPON_ORDER_SIZE);
   for (int i = 0; i < DEAFULT_WEAPON_ORDER_SIZE; i++) {
     if (i != 0) {
       StrCat(default_cvar, PLATFORM_MAX_PATH, ",");
