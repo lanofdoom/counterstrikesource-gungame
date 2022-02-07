@@ -168,6 +168,8 @@ static Action OnPlayerSpawn(Event event, const char[] name,
   CSWeaponID weapon = GetWeapon(frags);
   EquipWeapon(client, weapon);
 
+  SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+
   return Plugin_Continue;
 }
 
@@ -181,6 +183,13 @@ static Action OnPlayerDeath(Event event, const char[] name,
   if (!userid) {
     return Plugin_Continue;
   }
+
+  int client = GetClientOfUserId(userid);
+  if (!client) {
+    return Plugin_Continue;
+  }
+
+  SDKUnhook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
 
   int attacker = GetEventInt(event, "attacker");
   if (!attacker) {
@@ -219,7 +228,9 @@ static Action OnPlayerDeath(Event event, const char[] name,
     PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                 num_levels, weapon_alias);
 
+    SDKUnhook(attacker_client, SDKHook_WeaponCanUse, OnWeaponCanUse);
     EquipWeapon(attacker_client, weapon);
+    SDKHook(attacker_client, SDKHook_WeaponCanUse, OnWeaponCanUse);
   }
 
   if (level + 4 >= num_levels) {
@@ -354,6 +365,7 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
 
     CSWeaponID weapon = GetWeapon(frags);
     EquipWeapon(client, weapon);
+    SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
   }
 }
 
@@ -362,7 +374,6 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
 //
 
 public void OnClientPutInServer(int client) {
-  SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
   SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
 }
 
