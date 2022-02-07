@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "2.0.0",
+    description = "Enables GunGame game mode", version = "1.0.0",
     url = "https://github.com/lanofdoom/counterstrike-gungame"};
 
 static ConVar g_gungame_enabled_cvar;
