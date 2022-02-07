@@ -83,7 +83,213 @@ static CSWeaponID GetWeapon(int frags) {
   return result;
 }
 
-static void EquipWeapon(int client, CSWeaponID weapon) {
+static Action AllowWeaponImpl(int entity, CSWeaponID allowed_weapon) {
+  if (!GetConVarBool(g_gungame_enabled_cvar)) {
+    return Plugin_Continue;
+  }
+
+  char alias[PLATFORM_MAX_PATH];
+  if (!GetEntityClassname(entity, alias, PLATFORM_MAX_PATH)) {
+    return Plugin_Continue;
+  }
+
+  if (ReplaceString(alias, PLATFORM_MAX_PATH, "weapon_", "", false) != 1) {
+    return Plugin_Continue;
+  }
+
+  CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
+
+  if (weapon_id == CSWeapon_C4 || weapon_id == CSWeapon_KNIFE ||
+      weapon_id == allowed_weapon) {
+    return Plugin_Continue;
+  }
+
+  return Plugin_Stop;
+}
+
+static Action AllowAk47(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_AK47);
+}
+
+static Action AllowAug(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_AUG);
+}
+
+static Action AllowAwp(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_AWP);
+}
+
+static Action AllowDeagle(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_DEAGLE);
+}
+
+static Action AllowElite(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_ELITE);
+}
+
+static Action AllowFamas(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_FAMAS);
+}
+
+static Action AllowFiveSeven(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_FIVESEVEN);
+}
+
+static Action AllowGalil(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_GALIL);
+}
+
+static Action AllowGlock(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_GLOCK);
+}
+
+static Action AllowHEGrenade(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_HEGRENADE);
+}
+
+static Action AllowKnife(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_KNIFE);
+}
+
+static Action AllowM249(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_M249);
+}
+
+static Action AllowM3(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_M3);
+}
+
+static Action AllowM4A1(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_M4A1);
+}
+
+static Action AllowMac10(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_MAC10);
+}
+
+static Action AllowMp5Navy(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_MP5NAVY);
+}
+
+static Action AllowP228(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_P228);
+}
+
+static Action AllowP90(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_P90);
+}
+
+static Action AllowScout(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_SCOUT);
+}
+
+static Action AllowSg552(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_SG552);
+}
+
+static Action AllowTmp(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_TMP);
+}
+
+static Action AllowUmp45(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_UMP45);
+}
+
+static Action AllowUsp(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_USP);
+}
+
+static Action AllowXm1014(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_XM1014);
+}
+
+static SDKHookCB AllowWeapon(CSWeaponID weapon) {
+  SDKHookCB result;
+  switch (weapon) {
+    case CSWeapon_AK47: {
+      result = AllowAk47;
+    }
+    case CSWeapon_AUG: {
+      result = AllowAug;
+    }
+    case CSWeapon_AWP: {
+      result = AllowAwp;
+    }
+    case CSWeapon_DEAGLE: {
+      result = AllowDeagle;
+    }
+    case CSWeapon_ELITE: {
+      result = AllowElite;
+    }
+    case CSWeapon_FAMAS: {
+      result = AllowFamas;
+    }
+    case CSWeapon_FIVESEVEN: {
+      result = AllowFiveSeven;
+    }
+    case CSWeapon_GALIL: {
+      result = AllowGalil;
+    }
+    case CSWeapon_GLOCK: {
+      result = AllowGlock;
+    }
+    case CSWeapon_HEGRENADE: {
+      result = AllowHEGrenade;
+    }
+    case CSWeapon_KNIFE: {
+      result = AllowKnife;
+    }
+    case CSWeapon_M249: {
+      result = AllowM249;
+    }
+    case CSWeapon_M3: {
+      result = AllowM3;
+    }
+    case CSWeapon_M4A1: {
+      result = AllowM4A1;
+    }
+    case CSWeapon_MAC10: {
+      result = AllowMac10;
+    }
+    case CSWeapon_MP5NAVY: {
+      result = AllowMp5Navy;
+    }
+    case CSWeapon_P228: {
+      result = AllowP228;
+    }
+    case CSWeapon_P90: {
+      result = AllowP90;
+    }
+    case CSWeapon_SCOUT: {
+      result = AllowScout;
+    }
+    case CSWeapon_SG552: {
+      result = AllowSg552;
+    }
+    case CSWeapon_TMP: {
+      result = AllowTmp;
+    }
+    case CSWeapon_UMP45: {
+      result = AllowUmp45;
+    }
+    case CSWeapon_USP: {
+      result = AllowUsp;
+    }
+    case CSWeapon_XM1014: {
+      result = AllowXm1014;
+    }
+    default: {
+      result = AllowKnife;
+    }
+  }
+
+  return result;
+}
+
+static void EquipWeapon(int client, CSWeaponID old_weapon,
+                        CSWeaponID new_weapon) {
+  SDKUnhook(client, SDKHook_WeaponCanUse, AllowWeapon(old_weapon));
+
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
@@ -109,15 +315,17 @@ static void EquipWeapon(int client, CSWeaponID weapon) {
     AcceptEntityInput(entity, "Kill");
   }
 
-  if (weapon != CSWeapon_KNIFE) {
+  if (new_weapon != CSWeapon_KNIFE) {
     char weapon_alias[PLATFORM_MAX_PATH];
-    CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
+    CS_WeaponIDToAlias(new_weapon, weapon_alias, PLATFORM_MAX_PATH);
 
     char weapon_classname[PLATFORM_MAX_PATH];
     Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
 
     GivePlayerItem(client, weapon_classname);
   }
+
+  SDKHook(client, SDKHook_WeaponCanUse, AllowWeapon(new_weapon));
 }
 
 static void RefillHEGrenade(int userid) {
@@ -130,7 +338,7 @@ static void RefillHEGrenade(int userid) {
 
   CSWeaponID weapon = GetWeapon(frags);
   if (weapon == CSWeapon_HEGRENADE) {
-    EquipWeapon(client, CSWeapon_HEGRENADE);
+    EquipWeapon(client, CSWeapon_HEGRENADE, CSWeapon_HEGRENADE);
   }
 }
 
@@ -166,9 +374,7 @@ static Action OnPlayerSpawn(Event event, const char[] name,
 
   int frags = GetClientFrags(client);
   CSWeaponID weapon = GetWeapon(frags);
-  EquipWeapon(client, weapon);
-
-  SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+  EquipWeapon(client, weapon, weapon);
 
   return Plugin_Continue;
 }
@@ -179,21 +385,23 @@ static Action OnPlayerDeath(Event event, const char[] name,
     return Plugin_Continue;
   }
 
-  int userid = GetEventInt(event, "userid");
-  if (!userid) {
+  int victim_userid = GetEventInt(event, "userid");
+  if (!victim_userid) {
     return Plugin_Continue;
   }
 
-  int client = GetClientOfUserId(userid);
-  if (!client) {
+  int victim_client = GetClientOfUserId(victim_userid);
+  if (!victim_client) {
     return Plugin_Continue;
   }
 
-  SDKUnhook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+  int victim_frags = GetClientFrags(victim_client);
+  CSWeaponID victim_weapon = GetWeapon(victim_frags);
+  SDKUnhook(victim_client, SDKHook_WeaponCanUse, AllowWeapon(victim_weapon));
 
   int attacker = GetEventInt(event, "attacker");
   if (!attacker) {
-    attacker = userid;
+    attacker = victim_userid;
   }
 
   int attacker_client = GetClientOfUserId(attacker);
@@ -204,7 +412,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
   int old_frags = GetClientFrags(attacker_client);
 
   int frags;
-  if (attacker == userid) {
+  if (attacker == victim_userid) {
     if (old_frags == 0) {
       SetEntProp(attacker_client, Prop_Data, "m_iFrags", old_frags + 1);
       frags = old_frags;
@@ -228,9 +436,7 @@ static Action OnPlayerDeath(Event event, const char[] name,
     PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                 num_levels, weapon_alias);
 
-    SDKUnhook(attacker_client, SDKHook_WeaponCanUse, OnWeaponCanUse);
-    EquipWeapon(attacker_client, weapon);
-    SDKHook(attacker_client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+    EquipWeapon(attacker_client, old_weapon, weapon);
   }
 
   if (level + 4 >= num_levels) {
@@ -290,36 +496,6 @@ static Action OnWeaponFire(Event event, const char[] name,
   return Plugin_Continue;
 }
 
-static Action OnWeaponCanUse(int client, int weapon) {
-  if (!GetConVarBool(g_gungame_enabled_cvar)) {
-    return Plugin_Continue;
-  }
-
-  char alias[PLATFORM_MAX_PATH];
-  if (!GetEntityClassname(weapon, alias, PLATFORM_MAX_PATH)) {
-    return Plugin_Continue;
-  }
-
-  if (ReplaceString(alias, PLATFORM_MAX_PATH, "weapon_", "", false) != 1) {
-    return Plugin_Continue;
-  }
-
-  CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
-
-  if (weapon_id == CSWeapon_C4 || weapon_id == CSWeapon_KNIFE) {
-    return Plugin_Continue;
-  }
-
-  int frags = GetClientFrags(client);
-
-  CSWeaponID level_weapon_id = GetWeapon(frags);
-  if (level_weapon_id == weapon_id) {
-    return Plugin_Continue;
-  }
-
-  return Plugin_Stop;
-}
-
 static Action OnWeaponDrop(int client, int weapon) {
   if (!GetConVarBool(g_gungame_enabled_cvar)) {
     return Plugin_Continue;
@@ -364,8 +540,7 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
     }
 
     CSWeaponID weapon = GetWeapon(frags);
-    EquipWeapon(client, weapon);
-    SDKHook(client, SDKHook_WeaponCanUse, OnWeaponCanUse);
+    EquipWeapon(client, weapon, weapon);
   }
 }
 
