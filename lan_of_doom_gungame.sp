@@ -291,22 +291,25 @@ static void EquipWeapon(int client, CSWeaponID old_weapon,
   SDKUnhook(client, SDKHook_WeaponCanUse, AllowWeapon(old_weapon));
 
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
-  if (entity >= 0) {
-    CS_DropWeapon(client, entity, false, true);
+  if (entity >= 0 && IsValidEntity(entity)) {
+    RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
-  if (entity >= 0) {
-    CS_DropWeapon(client, entity, false, true);
+  if (entity >= 0 && IsValidEntity(entity)) {
+    RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   for (;;) {
     entity = GetPlayerWeaponSlot(client, CS_SLOT_GRENADE);
-    if (entity < 0) {
+    if (entity < 0 || !IsValidEntity(entity)) {
       break;
     }
 
-    CS_DropWeapon(client, entity, false, true);
+    RemovePlayerItem(client, entity);
+    AcceptEntityInput(entity, "Kill");
   }
 
   if (new_weapon != CSWeapon_KNIFE) {
