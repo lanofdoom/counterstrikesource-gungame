@@ -293,15 +293,11 @@ static void EquipWeapon(int client, CSWeaponID old_weapon,
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
-    RemovePlayerItem(client, entity);
-    AcceptEntityInput(entity, "Kill");
   }
 
   entity = GetPlayerWeaponSlot(client, CS_SLOT_SECONDARY);
   if (entity >= 0) {
     CS_DropWeapon(client, entity, false, true);
-    RemovePlayerItem(client, entity);
-    AcceptEntityInput(entity, "Kill");
   }
 
   for (;;) {
@@ -311,8 +307,6 @@ static void EquipWeapon(int client, CSWeaponID old_weapon,
     }
 
     CS_DropWeapon(client, entity, false, true);
-    RemovePlayerItem(client, entity);
-    AcceptEntityInput(entity, "Kill");
   }
 
   if (new_weapon != CSWeapon_KNIFE) {
@@ -348,6 +342,21 @@ static Action OnHEGrenadeTimerElapsed(Handle timer, any userid) {
   }
 
   RefillHEGrenade(userid);
+
+  return Plugin_Stop;
+}
+
+static Action OnWeaponSpawn(int entity) {
+  if (!GetConVarBool(g_gungame_enabled_cvar)) {
+    return Plugin_Continue;
+  }
+
+  int client = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
+  if (client > 0 || client <= MaxClients) {
+    return Plugin_Continue;
+  }
+
+  AcceptEntityInput(entity, "Kill");
 
   return Plugin_Stop;
 }
@@ -542,11 +551,35 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
     CSWeaponID weapon = GetWeapon(frags);
     EquipWeapon(client, weapon, weapon);
   }
+
+  for (int entity = 0; entity <= GetMaxEntities(); entity++) {
+    if (!IsValidEntity(entity)) {
+      continue;
+    }
+
+    char classname[PLATFORM_MAX_PATH];
+    if (!GetEntityClassname(entity, classname, PLATFORM_MAX_PATH)) {
+      continue;
+    }
+
+    if (!StrContains(classname, "weapon_") ||
+        StrEqual(classname, "weapon_c4")) {
+      continue;
+    }
+
+    OnWeaponSpawn(entity);
+  }
 }
 
 //
 // Forwards
 //
+
+public void OnEntityCreated(int entity, const char[] classname) {
+  if (StrContains(classname, "weapon_") && !StrEqual(classname, "weapon_c4")) {
+    SDKHook(entity, SDKHook_Spawn, OnWeaponSpawn);
+  }
+}
 
 public void OnClientPutInServer(int client) {
   SDKHook(client, SDKHook_WeaponDrop, OnWeaponDrop);
