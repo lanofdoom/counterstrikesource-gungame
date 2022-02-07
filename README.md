@@ -9,5 +9,5 @@ Copy ``lan_of_doom_gungame.smx`` to your server's
 ``css/cstrike/addons/sourcemod/plugins`` directory.
 
 # Console Variables
-``sm_lanofdoom_gungame_enabled`` If ``1``, gungame mode is enabled. ``0``
+``sm_lanofdoom_gungame_enabled`` If ``1``, gungame mode is enabled. ``1``
 by default.
