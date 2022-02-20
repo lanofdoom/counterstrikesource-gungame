@@ -463,6 +463,10 @@ static Action OnPlayerDeath(Event event, const char[] name,
     TriggerNextMapVote();
   }
 
+  char kill_weapon_name[PLATFORM_MAX_PATH];
+  GetEventString(event, "weapon", kill_weapon_name, PLATFORM_MAX_PATH);
+  PrintToServer("OnPlayerDeath %s %s", kill_weapon_name, name);
+
   if (level == num_levels) {
     if (weapon != old_weapon) {
       char player_name[PLATFORM_MAX_PATH];
@@ -503,6 +507,10 @@ static Action OnWeaponFire(Event event, const char[] name,
   if (!userid) {
     return Plugin_Continue;
   }
+
+  char kill_weapon_name[PLATFORM_MAX_PATH];
+  GetEventString(event, "weapon", kill_weapon_name, PLATFORM_MAX_PATH);
+  PrintToServer("OnWeaponFire %s %s", kill_weapon_name, name);
 
   CSWeaponID weapon_id = CS_AliasToWeaponID(name);
 
