@@ -328,6 +328,9 @@ static void EquipWeapon(int client, CSWeaponID old_weapon,
     Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
 
     GivePlayerItem(client, weapon_classname);
+  } else {
+    int weapon = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
+    EquipPlayerWeapon(client, weapon);
   }
 
   SDKHook(client, SDKHook_WeaponCanUse, AllowWeapon(new_weapon));
