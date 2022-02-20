@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "1.0.0",
+    description = "Enables GunGame game mode", version = "1.0.1",
     url = "https://github.com/lanofdoom/counterstrikesource-gungame"};
 
 static ConVar g_gungame_enabled_cvar;
@@ -54,14 +54,15 @@ static void TriggerNextMapVote() {
 
 static void GetWeaponAndLevel(int frags, CSWeaponID& weapon, int& level,
                               int& num_levels) {
-  static const CSWeaponID weapon_order[24] = {
-      CSWeapon_M249,   CSWeapon_AWP,   CSWeapon_AUG,       CSWeapon_SG552,
-      CSWeapon_M4A1,   CSWeapon_AK47,  CSWeapon_FAMAS,     CSWeapon_GALIL,
-      CSWeapon_SCOUT,  CSWeapon_P90,   CSWeapon_MP5NAVY,   CSWeapon_UMP45,
-      CSWeapon_MAC10,  CSWeapon_TMP,   CSWeapon_XM1014,    CSWeapon_M3,
-      CSWeapon_DEAGLE, CSWeapon_ELITE, CSWeapon_FIVESEVEN, CSWeapon_P228,
-      CSWeapon_USP,    CSWeapon_GLOCK, CSWeapon_HEGRENADE, CSWeapon_KNIFE};
-  static const int weapon_order_size = 24;
+  static const CSWeaponID weapon_order[25] = {
+      CSWeapon_M249,  CSWeapon_AWP,    CSWeapon_SG550, CSWeapon_SCOUT,
+      CSWeapon_AUG,   CSWeapon_SG552,  CSWeapon_M4A1,  CSWeapon_AK47,
+      CSWeapon_FAMAS, CSWeapon_GALIL,  CSWeapon_P90,   CSWeapon_MP5NAVY,
+      CSWeapon_UMP45, CSWeapon_MAC10,  CSWeapon_TMP,   CSWeapon_XM1014,
+      CSWeapon_M3,    CSWeapon_DEAGLE, CSWeapon_ELITE, CSWeapon_FIVESEVEN,
+      CSWeapon_P228,  CSWeapon_USP,    CSWeapon_GLOCK, CSWeapon_HEGRENADE,
+      CSWeapon_KNIFE};
+  static const int weapon_order_size = 25;
   static const int frags_per_level = 2;
 
   int level_base_zero = frags / frags_per_level;
@@ -183,6 +184,10 @@ static Action AllowScout(int client, int entity) {
   return AllowWeaponImpl(entity, CSWeapon_SCOUT);
 }
 
+static Action AllowSg550(int client, int entity) {
+  return AllowWeaponImpl(entity, CSWeapon_SG550);
+}
+
 static Action AllowSg552(int client, int entity) {
   return AllowWeaponImpl(entity, CSWeapon_SG552);
 }
@@ -262,6 +267,9 @@ static SDKHookCB AllowWeapon(CSWeaponID weapon) {
     }
     case CSWeapon_SCOUT: {
       result = AllowScout;
+    }
+    case CSWeapon_SG550: {
+      result = AllowSg550;
     }
     case CSWeapon_SG552: {
       result = AllowSg552;
