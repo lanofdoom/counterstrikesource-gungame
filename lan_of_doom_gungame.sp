@@ -463,10 +463,6 @@ static Action OnPlayerDeath(Event event, const char[] name,
     TriggerNextMapVote();
   }
 
-  char kill_weapon_name[PLATFORM_MAX_PATH];
-  GetEventString(event, "weapon", kill_weapon_name, PLATFORM_MAX_PATH);
-  PrintToServer("OnPlayerDeath %s %s", kill_weapon_name, name);
-
   if (level == num_levels) {
     if (weapon != old_weapon) {
       char player_name[PLATFORM_MAX_PATH];
@@ -474,7 +470,14 @@ static Action OnPlayerDeath(Event event, const char[] name,
         PrintCenterTextAll("%s is one kill from victory", player_name);
       }
     } else {
-      EndGame(attacker_client);
+      char kill_weapon_name[PLATFORM_MAX_PATH];
+      GetEventString(event, "weapon", kill_weapon_name, PLATFORM_MAX_PATH);
+
+      CSWeaponID kill_weapon = CS_AliasToWeaponID(kill_weapon_name);
+
+      if (kill_weapon == weapon) {
+        EndGame(attacker_client);
+      }
     }
   }
 
@@ -508,11 +511,10 @@ static Action OnWeaponFire(Event event, const char[] name,
     return Plugin_Continue;
   }
 
-  char kill_weapon_name[PLATFORM_MAX_PATH];
-  GetEventString(event, "weapon", kill_weapon_name, PLATFORM_MAX_PATH);
-  PrintToServer("OnWeaponFire %s %s", kill_weapon_name, name);
+  char weapon_name[PLATFORM_MAX_PATH];
+  GetEventString(event, "weapon", weapon_name, PLATFORM_MAX_PATH);
 
-  CSWeaponID weapon_id = CS_AliasToWeaponID(name);
+  CSWeaponID weapon_id = CS_AliasToWeaponID(weapon_name);
 
   if (weapon_id != CSWeapon_HEGRENADE) {
     return Plugin_Continue;
