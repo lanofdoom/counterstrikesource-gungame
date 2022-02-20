@@ -339,6 +339,10 @@ static void RefillHEGrenade(int userid) {
     return;
   }
 
+  if (GetPlayerWeaponSlot(client, CS_SLOT_GRENADE) != -1) {
+    return;
+  }
+
   int frags = GetClientFrags(client);
 
   CSWeaponID weapon = GetWeapon(frags);
