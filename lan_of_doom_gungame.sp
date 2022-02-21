@@ -9,6 +9,9 @@ public const Plugin myinfo = {
     description = "Enables GunGame game mode", version = "1.0.2",
     url = "https://github.com/lanofdoom/counterstrikesource-gungame"};
 
+static const float kHeGrenadeDetonateDelay = 2.5;
+static const float kEquipDelay = 0.02;
+
 static ConVar g_gungame_enabled_cvar;
 
 //
@@ -426,7 +429,8 @@ static Action OnPlayerSpawn(Event event, const char[] name,
   CSWeaponID weapon = GetWeapon(frags);
   PrepareForWeapon(client, weapon, weapon);
 
-  CreateTimer(0.02, DelayedOnPlayerSpawn, userid, TIMER_FLAG_NO_MAPCHANGE);
+  CreateTimer(kEquipDelay, DelayedOnPlayerSpawn, userid,
+              TIMER_FLAG_NO_MAPCHANGE);
 
   return Plugin_Continue;
 }
@@ -489,7 +493,9 @@ static Action OnPlayerDeath(Event event, const char[] name,
                 num_levels, weapon_alias);
 
     PrepareForWeapon(attacker_client, old_weapon, weapon);
-    EquipWeapon(attacker_client, weapon);
+
+    CreateTimer(kEquipDelay, DelayedOnPlayerSpawn, attacker,
+                TIMER_FLAG_NO_MAPCHANGE);
   }
 
   if (level + 4 >= num_levels) {
@@ -554,7 +560,8 @@ static Action OnWeaponFire(Event event, const char[] name,
   }
 
   // Fallback in case grenade does not detonate
-  CreateTimer(2.5, OnHEGrenadeTimerElapsed, userid, TIMER_FLAG_NO_MAPCHANGE);
+  CreateTimer(kHeGrenadeDetonateDelay, OnHEGrenadeTimerElapsed, userid,
+              TIMER_FLAG_NO_MAPCHANGE);
 
   return Plugin_Continue;
 }
