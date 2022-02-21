@@ -6,7 +6,7 @@
 
 public const Plugin myinfo = {
     name = "GunGame", author = "LAN of DOOM",
-    description = "Enables GunGame game mode", version = "1.0.1",
+    description = "Enables GunGame game mode", version = "1.0.2",
     url = "https://github.com/lanofdoom/counterstrikesource-gungame"};
 
 static ConVar g_gungame_enabled_cvar;
@@ -553,7 +553,7 @@ static Action OnWeaponDrop(int client, int weapon) {
 
   CSWeaponID weapon_id = CS_AliasToWeaponID(alias);
 
-  if (weapon_id == CSWeapon_C4) {
+  if (weapon_id == CSWeapon_C4 || weapon_id == CSWeapon_HEGRENADE) {
     return Plugin_Continue;
   }
 
