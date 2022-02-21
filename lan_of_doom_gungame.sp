@@ -294,8 +294,8 @@ static SDKHookCB AllowWeapon(CSWeaponID weapon) {
   return result;
 }
 
-static void EquipWeapon(int client, CSWeaponID old_weapon,
-                        CSWeaponID new_weapon) {
+static void PrepareForWeapon(int client, CSWeaponID old_weapon,
+                             CSWeaponID new_weapon) {
   SDKUnhook(client, SDKHook_WeaponCanUse, AllowWeapon(old_weapon));
 
   int entity = GetPlayerWeaponSlot(client, CS_SLOT_PRIMARY);
@@ -320,20 +320,22 @@ static void EquipWeapon(int client, CSWeaponID old_weapon,
     AcceptEntityInput(entity, "Kill");
   }
 
-  if (new_weapon != CSWeapon_KNIFE) {
+  SDKHook(client, SDKHook_WeaponCanUse, AllowWeapon(new_weapon));
+}
+
+static void EquipWeapon(int client, CSWeaponID weapon) {
+  if (weapon != CSWeapon_KNIFE) {
     char weapon_alias[PLATFORM_MAX_PATH];
-    CS_WeaponIDToAlias(new_weapon, weapon_alias, PLATFORM_MAX_PATH);
+    CS_WeaponIDToAlias(weapon, weapon_alias, PLATFORM_MAX_PATH);
 
     char weapon_classname[PLATFORM_MAX_PATH];
     Format(weapon_classname, PLATFORM_MAX_PATH, "weapon_%s", weapon_alias);
 
     GivePlayerItem(client, weapon_classname);
   } else {
-    int weapon = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
-    EquipPlayerWeapon(client, weapon);
+    int knife = GetPlayerWeaponSlot(client, CS_SLOT_KNIFE);
+    EquipPlayerWeapon(client, knife);
   }
-
-  SDKHook(client, SDKHook_WeaponCanUse, AllowWeapon(new_weapon));
 }
 
 static void RefillHEGrenade(int userid) {
@@ -350,7 +352,7 @@ static void RefillHEGrenade(int userid) {
 
   CSWeaponID weapon = GetWeapon(frags);
   if (weapon == CSWeapon_HEGRENADE) {
-    EquipWeapon(client, CSWeapon_HEGRENADE, CSWeapon_HEGRENADE);
+    EquipWeapon(client, CSWeapon_HEGRENADE);
   }
 }
 
@@ -379,6 +381,27 @@ static Action OnWeaponSpawn(int entity) {
   return Plugin_Stop;
 }
 
+static Action DelayedOnPlayerSpawn(Handle timer, any userid) {
+  if (!GetConVarBool(g_gungame_enabled_cvar)) {
+    return Plugin_Stop;
+  }
+
+  int client = GetClientOfUserId(userid);
+  if (!client) {
+    return Plugin_Stop;
+  }
+
+  if (!IsPlayerAlive(client)) {
+    return Plugin_Stop;
+  }
+
+  int frags = GetClientFrags(client);
+  CSWeaponID weapon = GetWeapon(frags);
+  EquipWeapon(client, weapon);
+
+  return Plugin_Stop;
+}
+
 //
 // Hooks
 //
@@ -401,7 +424,9 @@ static Action OnPlayerSpawn(Event event, const char[] name,
 
   int frags = GetClientFrags(client);
   CSWeaponID weapon = GetWeapon(frags);
-  EquipWeapon(client, weapon, weapon);
+  PrepareForWeapon(client, weapon, weapon);
+
+  CreateTimer(0.02, DelayedOnPlayerSpawn, userid, TIMER_FLAG_NO_MAPCHANGE);
 
   return Plugin_Continue;
 }
@@ -463,7 +488,8 @@ static Action OnPlayerDeath(Event event, const char[] name,
     PrintToChat(attacker_client, "You are now on level %d of %d: %s", level,
                 num_levels, weapon_alias);
 
-    EquipWeapon(attacker_client, old_weapon, weapon);
+    PrepareForWeapon(attacker_client, old_weapon, weapon);
+    EquipWeapon(attacker_client, weapon);
   }
 
   if (level + 4 >= num_levels) {
@@ -577,7 +603,8 @@ static void OnCvarChanged(ConVar convar, char[] old_value, char[] new_value) {
     }
 
     CSWeaponID weapon = GetWeapon(frags);
-    EquipWeapon(client, weapon, weapon);
+    PrepareForWeapon(client, weapon, weapon);
+    EquipWeapon(client, weapon);
   }
 
   for (int entity = 0; entity <= GetMaxEntities(); entity++) {
